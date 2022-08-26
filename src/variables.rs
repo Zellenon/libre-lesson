@@ -1,16 +1,13 @@
 use bevy::{prelude::*, utils::HashMap};
-use num_traits::Num;
 use std::{hash::Hash, sync::Arc};
 
-pub trait MathVar: Hash + Eq + Clone + Sync + Send {}
-
-#[derive(Clone, Copy)]
-pub struct VariableList<T: MathVar>(HashMap<T, Variable<T>>);
+#[derive(Clone)]
+pub struct VariableList(HashMap<&'static str, Variable>);
 
 #[derive(Clone)]
-pub enum Variable<T: MathVar> {
+pub enum Variable {
     Independent(f64),
-    Dependent(Arc<dyn Fn(&VariableList<T>) -> f64 + Send + Sync>),
+    Dependent(Arc<dyn Fn(&VariableList) -> f64 + Send + Sync>),
 }
 
 macro_rules! dependent {
@@ -19,12 +16,17 @@ macro_rules! dependent {
     };
 }
 
-impl<T: MathVar> VariableList<T> {
+impl VariableList {
     pub fn new() -> Self {
-        VariableList(HashMap::new())
+        VariableList({
+            let mut a = HashMap::new();
+            a.insert("0", Variable::Independent(0.));
+            a.insert("1", Variable::Independent(1.));
+            a
+        })
     }
 
-    pub fn get(&self, key: T) -> f64 {
+    pub fn get(&self, key: &str) -> f64 {
         let var = {
             let x = &self.0;
             x.get(&key).unwrap().clone()
@@ -35,11 +37,7 @@ impl<T: MathVar> VariableList<T> {
         }
     }
 
-    pub fn get_raw(&self, key: T) -> &Variable<T> {
-        (self).0.get(&key).unwrap()
-    }
-
-    pub fn insert(&mut self, key: T, value: Variable<T>) {
+    pub fn insert(&mut self, key: &'static str, value: Variable) {
         (*self).0.insert(key, value);
     }
 }
