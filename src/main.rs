@@ -1,11 +1,13 @@
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 use bevy_prototype_lyon::{prelude::*, shapes::Circle};
-use drawing::*;
+use drawing::DrawingPlugin;
+// use drawing::*;
 use std::convert::From;
+use std::marker::PhantomData;
 use std::{hash::Hash, sync::Arc};
 use strum_macros::EnumIter;
-use variables::{MathVar, OldVariable, Variable, VariableBundle, VariableList};
+use variables::{MathVar, Variable, VariableList};
 
 mod drawing;
 mod variables;
@@ -71,6 +73,9 @@ fn main() {
         .add_plugin(EguiPlugin)
         .add_system(update_sine_inspector)
         .add_system(update_variables_from_gui)
+        .add_plugin(DrawingPlugin {
+            _marker: PhantomData as PhantomData<Vars>,
+        })
         .run();
 }
 
@@ -111,26 +116,7 @@ fn setup_system(mut commands: Commands) {
         })),
     );
 
-    commands
-        .spawn_bundle(VariableBundle::new(String::from("Wave Theta"), 0.))
-        .insert(Theta);
-    commands
-        .spawn_bundle(VariableBundle::new(String::from("Wave Frequency"), 2.))
-        .insert(Freq);
-    commands
-        .spawn_bundle(VariableBundle::new(String::from("Wave Amplitude"), 30.))
-        .insert(Amp);
-
-    commands
-        .spawn_bundle(VariableBundle::new(String::from("Circle Center x"), -400.))
-        .insert(CircleX);
-
-    commands
-        .spawn_bundle(VariableBundle::new(String::from("CircleSin"), 0.))
-        .insert(CircleSin);
-    commands
-        .spawn_bundle(VariableBundle::new(String::from("CircleCos"), 0.))
-        .insert(CircleCos);
+    commands.insert_resource(vars);
 
     let circle = Circle {
         radius: 30.,
@@ -157,38 +143,23 @@ fn setup_system(mut commands: Commands) {
 
 fn theta_update(
     // time: Res<Time>,
-    mut var_query: ParamSet<(
-        Query<&mut OldVariable<f64>, With<Theta>>,
-        Query<&OldVariable<f64>, With<Freq>>,
-    )>,
+    mut vars: ResMut<VariableList<Vars>>,
 ) {
     // let delta = time.delta_seconds_f64();
     let delta = 0.02;
-    let freq = var_query.p1().single().0;
-    let mut theta_query = var_query.p0();
-    let mut theta = theta_query.single_mut();
-    theta.0 = theta.0 + (delta * 3.1415 * freq);
+    let theta = vars.get_raw(Vars::Theta);
+    match theta {
+        Variable::Independent(t) => {
+            let new_theta = t + delta * 3.1415 * vars.get(Vars::Freq);
+            vars.insert(Vars::Theta, Variable::Independent(new_theta));
+        }
+        Variable::Dependent(_) => {}
+    };
 }
 
-fn sincos_update(
-    mut var_query: ParamSet<(
-        Query<&mut OldVariable<f64>, With<CircleSin>>,
-        Query<&mut OldVariable<f64>, With<CircleCos>>,
-        Query<&OldVariable<f64>, With<CircleX>>,
-        Query<&OldVariable<f64>, With<Theta>>,
-    )>,
-) {
-}
-
-fn line_update(
-    mut sinequery: Query<(&mut Path, &mut SineLine)>,
-    mut var_query: ParamSet<(
-        Query<&OldVariable<f64>, With<Theta>>,
-        Query<&OldVariable<f64>, With<Amp>>,
-    )>,
-) {
-    let theta = var_query.p0().single_mut().0;
-    let amp = var_query.p1().single_mut().0;
+fn line_update(mut sinequery: Query<(&mut Path, &mut SineLine)>, vars: Res<VariableList<Vars>>) {
+    let theta = vars.get(Vars::Theta);
+    let amp = vars.get(Vars::Amp);
 
     for (mut line, mut sine) in sinequery.iter_mut() {
         let mut path_builder = PathBuilder::new();
@@ -205,9 +176,9 @@ fn line_update(
 
 fn circle_update(
     mut circle_query: Query<&mut Path, With<BaseCircle>>,
-    amp_query: Query<&OldVariable<f64>, With<Amp>>,
+    vars: Res<VariableList<Vars>>,
 ) {
-    let amp = amp_query.single().0;
+    let amp = vars.get(Vars::Amp);
     let circle = Circle {
         radius: amp as f32,
         ..Circle::default()
@@ -236,15 +207,9 @@ fn update_sine_inspector(
         });
 }
 
-fn update_variables_from_gui(
-    inspector: Res<SineInspector>,
-    mut var_query: ParamSet<(
-        Query<&mut OldVariable<f64>, With<Freq>>,
-        Query<&mut OldVariable<f64>, With<Amp>>,
-    )>,
-) {
+fn update_variables_from_gui(inspector: Res<SineInspector>, mut vars: ResMut<VariableList<Vars>>) {
     if inspector.is_changed() {
-        var_query.p0().single_mut().0 = inspector.freq;
-        var_query.p1().single_mut().0 = inspector.amp;
+        vars.insert(Vars::Freq, Variable::Independent(inspector.freq));
+        vars.insert(Vars::Amp, Variable::Independent(inspector.amp));
     }
 }

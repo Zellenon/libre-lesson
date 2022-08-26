@@ -2,15 +2,15 @@ use bevy::{prelude::*, utils::HashMap};
 use num_traits::Num;
 use std::{hash::Hash, sync::Arc};
 
-pub trait MathVar: Hash + Eq + Clone {}
+pub trait MathVar: Hash + Eq + Clone + Sync + Send {}
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct VariableList<T: MathVar>(HashMap<T, Variable<T>>);
 
 #[derive(Clone)]
 pub enum Variable<T: MathVar> {
     Independent(f64),
-    Dependent(Arc<dyn Fn(&VariableList<T>) -> f64>),
+    Dependent(Arc<dyn Fn(&VariableList<T>) -> f64 + Send + Sync>),
 }
 
 macro_rules! dependent {
@@ -35,40 +35,11 @@ impl<T: MathVar> VariableList<T> {
         }
     }
 
+    pub fn get_raw(&self, key: T) -> &Variable<T> {
+        (self).0.get(&key).unwrap()
+    }
+
     pub fn insert(&mut self, key: T, value: Variable<T>) {
         (*self).0.insert(key, value);
-    }
-}
-
-#[derive(Component, Clone, Copy)]
-pub struct OldVariable<T: Num>(pub T);
-
-impl From<f64> for OldVariable<f64> {
-    fn from(x: f64) -> Self {
-        OldVariable(x)
-    }
-}
-
-#[derive(Bundle)]
-pub struct VariableBundle {
-    pub name: Name,
-    pub value: OldVariable<f64>,
-}
-
-impl VariableBundle {
-    pub fn new(name: String, value: f64) -> Self {
-        Self {
-            name: Name::new(name),
-            value: OldVariable(value),
-        }
-    }
-}
-
-impl Default for VariableBundle {
-    fn default() -> Self {
-        Self {
-            name: Name::new("Unnamed Variable"),
-            value: OldVariable(1.),
-        }
     }
 }
