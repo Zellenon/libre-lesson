@@ -2,7 +2,7 @@ use bevy::{prelude::*, utils::HashMap};
 use std::{hash::Hash, sync::Arc};
 
 #[derive(Clone)]
-pub struct VariableList(HashMap<&'static str, Variable>);
+pub struct VariableList(HashMap<String, Variable>);
 
 #[derive(Clone)]
 pub enum Variable {
@@ -19,14 +19,14 @@ macro_rules! dependent {
 impl VariableList {
     pub fn new() -> Self {
         VariableList({
-            let mut a = HashMap::new();
-            a.insert("0", Variable::Independent(0.));
-            a.insert("1", Variable::Independent(1.));
+            let mut a: HashMap<String, Variable> = HashMap::new();
+            a.insert("0".into(), Variable::Independent(0.));
+            a.insert("1".into(), Variable::Independent(1.));
             a
         })
     }
 
-    pub fn get(&self, key: &str) -> f64 {
+    pub fn get(&self, key: String) -> f64 {
         let var = {
             let x = &self.0;
             x.get(&key).unwrap().clone()
@@ -37,7 +37,7 @@ impl VariableList {
         }
     }
 
-    pub fn insert(&mut self, key: &'static str, value: Variable) {
+    pub fn insert(&mut self, key: String, value: Variable) {
         (*self).0.insert(key, value);
     }
 }
