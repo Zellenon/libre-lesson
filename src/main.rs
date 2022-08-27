@@ -45,86 +45,84 @@ fn main() {
 fn setup_system(mut commands: Commands) {
     use variables::Variable::*;
 
-    let mut vars: VariableList = VariableList::new();
-    vars.insert("theta".into(), Independent(0.));
-    vars.insert("freq".into(), Independent(2.));
-    vars.insert("amp".into(), Independent(30.));
-    vars.insert("circle_x".into(), Independent(-100.));
-    vars.insert("point_rad".into(), Independent(10.));
-    vars.insert(
-        "cos(theta)".into(),
-        Variable::Dependent(Arc::new(move |vars: &VariableList| {
-            vars.get("theta".into()).cos() * vars.get("amp".into())
-        })),
-    );
-    vars.insert(
-        "sin(theta)".into(),
-        Variable::Dependent(Arc::new(move |vars: &VariableList| {
-            vars.get("theta".into()).sin() * vars.get("amp".into())
-        })),
-    );
-    vars.insert(
-        "circle_cos".into(),
-        Variable::Dependent(Arc::new(move |vars: &VariableList| {
-            vars.get("circle_x".into()) + vars.get("cos(theta)".into())
-        })),
-    );
-    vars.insert(
-        "circle_sin".into(),
-        Variable::Dependent(Arc::new(move |vars: &VariableList| {
-            vars.get("sin(theta)".into())
-        })),
-    );
-    commands.insert_resource(vars);
+    let mut frameMaker = |prefix: &str, offset: f64| -> VariableList {
+        let mut vars: VariableList = VariableList::new();
+        vars.insert("theta", Independent(0.));
+        vars.insert("freq", Independent(2.));
+        vars.insert("amp", Independent(30.));
+        vars.insert("circle_x", Independent(-100.));
+        vars.insert("point_rad", Independent(10.));
+        vars.insert(
+            "cos(theta)",
+            Variable::Dependent(Arc::new(move |vars: &VariableList| {
+                vars.get("theta").cos() * vars.get("amp")
+            })),
+        );
+        vars.insert(
+            "sin(theta)",
+            Variable::Dependent(Arc::new(move |vars: &VariableList| {
+                vars.get("theta").sin() * vars.get("amp")
+            })),
+        );
+        vars.insert(
+            "circle_cos",
+            Variable::Dependent(Arc::new(move |vars: &VariableList| {
+                vars.get("circle_x") + vars.get("cos(theta)")
+            })),
+        );
+        vars.insert(
+            "circle_sin",
+            Variable::Dependent(Arc::new(move |vars: &VariableList| vars.get("sin(theta)"))),
+        );
 
-    let circle = Circle {
-        radius: 30.,
-        ..Circle::default()
+        let circle = Circle {
+            radius: 30.,
+            ..Circle::default()
+        };
+
+        let transform = Transform::from_xyz(0., offset as f32, 0.);
+
+        commands
+            .spawn_bundle(GeometryBuilder::build_as(
+                &circle,
+                DrawMode::Stroke(StrokeMode::new(Color::WHITE, 3.)),
+                transform,
+            ))
+            .insert(BoundCircle::new("amp"))
+            .insert(BoundPoint::new("circle_x", "0"));
+
+        let point = BoundPoint::new("circle_cos", "circle_sin");
+        commands
+            .spawn_bundle(GeometryBuilder::build_as(
+                &circle,
+                DrawMode::Stroke(StrokeMode::new(Color::RED, 3.)),
+                transform,
+            ))
+            .insert(BoundCircle::new("point_rad"))
+            .insert(point.clone());
+
+        let path_builder = PathBuilder::new();
+        let line = path_builder.build();
+
+        commands
+            .spawn_bundle(GeometryBuilder::build_as(
+                &line,
+                DrawMode::Stroke(StrokeMode::new(Color::WHITE, 3.0)),
+                transform,
+            ))
+            .insert(BoundTracker::new("sin(theta)"));
+        commands
+            .spawn_bundle(GeometryBuilder::build_as(
+                &line,
+                DrawMode::Stroke(StrokeMode::new(Color::WHITE, 2.0)),
+                transform,
+            ))
+            .insert(BoundLine::new(point, BoundPoint::new("0", "sin(theta)")));
+        return vars;
     };
 
-    commands
-        .spawn_bundle(GeometryBuilder::build_as(
-            &circle,
-            DrawMode::Stroke(StrokeMode::new(Color::WHITE, 3.)),
-            Transform::default(),
-        ))
-        .insert(BoundCircle {
-            radius: "amp".into(),
-        })
-        .insert(BoundPoint::new("circle_x".into(), "0".into()));
-
-    let point = BoundPoint::new("circle_cos".into(), "circle_sin".into());
-    commands
-        .spawn_bundle(GeometryBuilder::build_as(
-            &circle,
-            DrawMode::Stroke(StrokeMode::new(Color::RED, 3.)),
-            Transform::default(),
-        ))
-        .insert(BoundCircle {
-            radius: "point_rad".into(),
-        })
-        .insert(point.clone());
-
-    let path_builder = PathBuilder::new();
-    let line = path_builder.build();
-
-    commands
-        .spawn_bundle(GeometryBuilder::build_as(
-            &line,
-            DrawMode::Stroke(StrokeMode::new(Color::WHITE, 3.0)),
-            Transform::default(),
-        ))
-        .insert(BoundTracker::new("sin(theta)".into()));
-    commands
-        .spawn_bundle(GeometryBuilder::build_as(
-            &line,
-            DrawMode::Stroke(StrokeMode::new(Color::WHITE, 2.0)),
-            Transform::default(),
-        ))
-        .insert(BoundLine::new(
-            point,
-            BoundPoint::new("0".into(), "sin(theta)".into()),
-        ));
+    let vars_upper = frameMaker("upper_", 200.);
+    commands.insert_resource(vars_upper);
 }
 
 fn theta_update(
@@ -133,17 +131,17 @@ fn theta_update(
 ) {
     // let delta = time.delta_seconds_f64();
     let delta = 0.02;
-    let theta = vars.get("theta".into());
-    let freq = vars.get("freq".into());
+    let theta = vars.get("theta");
+    let freq = vars.get("freq");
     vars.insert(
-        "theta".into(),
+        "theta",
         Variable::Independent(theta + delta * 3.1415 * freq),
     );
 }
 
 fn line_update(mut sinequery: Query<(&mut Path, &mut SineLine)>, vars: Res<VariableList>) {
-    let theta = vars.get("theta".into());
-    let amp = vars.get("amp".into());
+    let theta = vars.get("theta");
+    let amp = vars.get("amp");
 
     for (mut line, mut sine) in sinequery.iter_mut() {
         let mut path_builder = PathBuilder::new();
@@ -180,7 +178,7 @@ fn update_sine_inspector(
 
 fn update_variables_from_gui(inspector: Res<SineInspector>, mut vars: ResMut<VariableList>) {
     if inspector.is_changed() {
-        vars.insert("freq".into(), Variable::Independent(inspector.freq));
-        vars.insert("amp".into(), Variable::Independent(inspector.amp));
+        vars.insert("freq", Variable::Independent(inspector.freq));
+        vars.insert("amp", Variable::Independent(inspector.amp));
     }
 }

@@ -1,8 +1,12 @@
 use bevy::{prelude::*, utils::HashMap};
+use std::ops::Add;
 use std::{hash::Hash, sync::Arc};
 
-#[derive(Clone)]
-pub struct VariableList(HashMap<String, Variable>);
+#[derive(Component, Clone)]
+pub struct VariableList {
+    variables: HashMap<String, Variable>,
+    children: HashMap<String, VariableList>,
+}
 
 #[derive(Clone)]
 pub enum Variable {
@@ -18,26 +22,41 @@ macro_rules! dependent {
 
 impl VariableList {
     pub fn new() -> Self {
-        VariableList({
-            let mut a: HashMap<String, Variable> = HashMap::new();
-            a.insert("0".into(), Variable::Independent(0.));
-            a.insert("1".into(), Variable::Independent(1.));
-            a
-        })
+        VariableList {
+            variables: {
+                let mut a: HashMap<String, Variable> = HashMap::new();
+                a.insert("0".into(), Variable::Independent(0.));
+                a.insert("1".into(), Variable::Independent(1.));
+                a
+            },
+            children: HashMap::new(),
+        }
     }
 
-    pub fn get(&self, key: String) -> f64 {
-        let var = {
-            let x = &self.0;
-            x.get(&key).unwrap().clone()
-        };
+    pub fn get<T: Into<String>>(&self, key: T) -> f64 {
+        let var = { &self.variables.get(&key.into()).unwrap().clone() };
         match var {
-            Variable::Independent(x) => x,
+            Variable::Independent(x) => *x,
             Variable::Dependent(f) => f(&self),
         }
     }
 
-    pub fn insert(&mut self, key: String, value: Variable) {
-        (*self).0.insert(key, value);
+    pub fn insert<T: Into<String>>(&mut self, key: T, value: Variable) {
+        (*self).variables.insert(key.into(), value);
+    }
+
+    pub fn add_child<T: Into<String>>(&mut self, key: T, child: VariableList) {
+        (*self).children.insert(key.into(), child);
+    }
+}
+
+impl Add for VariableList {
+    type Output = VariableList;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        let mut new_map = VariableList::new();
+        new_map.variables.extend(self.variables);
+        new_map.variables.extend(rhs.variables);
+        new_map
     }
 }

@@ -26,8 +26,11 @@ pub struct BoundPoint {
 }
 
 impl BoundPoint {
-    pub fn new(x: String, y: String) -> Self {
-        Self { x, y }
+    pub fn new<T: Into<String>>(x: T, y: T) -> Self {
+        Self {
+            x: x.into(),
+            y: y.into(),
+        }
     }
 
     pub fn vec2(&self, vars: &VariableList) -> Vec2 {
@@ -46,7 +49,7 @@ pub struct BoundLine {
 
 impl BoundLine {
     pub fn new(p1: BoundPoint, p2: BoundPoint) -> Self {
-        Self { p1, p2 }
+        Self { p1: p1, p2: p2 }
     }
 }
 
@@ -63,6 +66,14 @@ fn update_bound_lines(mut line_query: Query<(&mut BoundLine, &mut Path)>, vars: 
 #[derive(Component, Clone)]
 pub struct BoundCircle {
     pub radius: String,
+}
+
+impl BoundCircle {
+    pub fn new<T: Into<String>>(radius: T) -> Self {
+        Self {
+            radius: radius.into(),
+        }
+    }
 }
 
 fn update_bound_circles(
@@ -88,9 +99,9 @@ pub struct BoundTracker {
     pub history: Vec<f64>,
 }
 impl BoundTracker {
-    pub fn new(target: String) -> Self {
+    pub fn new<T: Into<String>>(target: T) -> Self {
         Self {
-            target,
+            target: target.into(),
             history: Vec::new(),
         }
     }
