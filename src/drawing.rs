@@ -90,7 +90,6 @@ fn update_bound_circles(
         let vec: Vec2 = point.vec2(&vars);
         *transform = Transform::from_xyz(vec.x, vec.y, 0.);
     }
-    print!("run.")
 }
 
 #[derive(Component, Clone)]

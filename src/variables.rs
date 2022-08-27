@@ -34,10 +34,19 @@ impl VariableList {
     }
 
     pub fn get<T: Into<String>>(&self, key: T) -> f64 {
-        let var = { &self.variables.get(&key.into()).unwrap().clone() };
-        match var {
-            Variable::Independent(x) => *x,
-            Variable::Dependent(f) => f(&self),
+        let key_string: String = key.into();
+        let mut parts = key_string.split('.').collect::<Vec<&str>>();
+        if parts.len() > 1 {
+            let child_key: String = (*parts.first().unwrap()).into();
+            parts.remove(0);
+            let child = self.get_child(child_key);
+            (*child).get(parts.join("."))
+        } else {
+            let var = &self.variables.get(&key_string).unwrap().clone();
+            match var {
+                Variable::Independent(x) => *x,
+                Variable::Dependent(f) => f(&self),
+            }
         }
     }
 
@@ -47,6 +56,10 @@ impl VariableList {
 
     pub fn add_child<T: Into<String>>(&mut self, key: T, child: VariableList) {
         (*self).children.insert(key.into(), child);
+    }
+
+    fn get_child<T: Into<String>>(&self, key: T) -> &VariableList {
+        (*self).children.get(&key.into()).unwrap()
     }
 }
 

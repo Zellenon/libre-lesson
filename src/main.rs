@@ -50,12 +50,13 @@ fn main() {
 fn setup_system(mut commands: Commands) {
     use variables::Variable::*;
 
-    let mut frameMaker = |prefix: &str, offset: f64| -> VariableList {
+    let mut frame_maker = |offset: f64| -> VariableList {
         let mut vars: VariableList = VariableList::new();
         vars.insert("theta", Independent(0.));
         vars.insert("freq", Independent(2.));
         vars.insert("amp", Independent(30.));
         vars.insert("circle_x", Independent(-100.));
+        vars.insert("shift_y", Independent(offset));
         vars.insert("point_rad", Independent(10.));
         vars.insert(
             "cos(theta)",
@@ -66,7 +67,7 @@ fn setup_system(mut commands: Commands) {
         vars.insert(
             "sin(theta)",
             Variable::Dependent(Arc::new(move |vars: &VariableList| {
-                vars.get("theta").sin() * vars.get("amp")
+                vars.get("theta").sin() * vars.get("amp") + vars.get("shift_y")
             })),
         );
         vars.insert(
@@ -85,23 +86,21 @@ fn setup_system(mut commands: Commands) {
             ..Circle::default()
         };
 
-        let transform = Transform::from_xyz(0., offset as f32, 0.);
-
         commands
             .spawn_bundle(GeometryBuilder::build_as(
                 &circle,
                 DrawMode::Stroke(StrokeMode::new(Color::WHITE, 3.)),
-                transform,
+                Transform::default(),
             ))
             .insert(BoundCircle::new("amp"))
-            .insert(BoundPoint::new("circle_x", "0"));
+            .insert(BoundPoint::new("circle_x", "shift_y"));
 
         let point = BoundPoint::new("circle_cos", "circle_sin");
         commands
             .spawn_bundle(GeometryBuilder::build_as(
                 &circle,
                 DrawMode::Stroke(StrokeMode::new(Color::RED, 3.)),
-                transform,
+                Transform::default(),
             ))
             .insert(BoundCircle::new("point_rad"))
             .insert(point.clone());
@@ -113,20 +112,25 @@ fn setup_system(mut commands: Commands) {
             .spawn_bundle(GeometryBuilder::build_as(
                 &line,
                 DrawMode::Stroke(StrokeMode::new(Color::WHITE, 3.0)),
-                transform,
+                Transform::default(),
             ))
             .insert(BoundTracker::new("sin(theta)"));
         commands
             .spawn_bundle(GeometryBuilder::build_as(
                 &line,
                 DrawMode::Stroke(StrokeMode::new(Color::WHITE, 2.0)),
-                transform,
+                Transform::default(),
             ))
             .insert(BoundLine::new(point, BoundPoint::new("0", "sin(theta)")));
         return vars;
     };
 
-    let vars_upper = frameMaker("upper_", 200.);
+    let vars_upper = frame_maker(200.);
+    // let vars_lower = frame_maker(-200.);
+    // let mut master_vars = VariableList::new();
+    // master_vars.add_child("upper", vars_upper);
+    // master_vars.add_child("lower", vars_lower);
+    // commands.insert_resource(master_vars);
     commands.insert_resource(vars_upper);
 }
 
