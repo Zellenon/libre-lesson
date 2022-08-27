@@ -1,3 +1,4 @@
+use bevy::asset::AssetServerSettings;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 use bevy_prototype_lyon::{prelude::*, shapes::Circle};
@@ -27,6 +28,10 @@ impl Default for SineInspector {
 
 fn main() {
     App::new()
+        .insert_resource(AssetServerSettings {
+            watch_for_changes: true,
+            ..default()
+        })
         .insert_resource(Msaa { samples: 4 })
         .add_plugins(DefaultPlugins)
         .add_plugin(ShapePlugin)
