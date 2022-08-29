@@ -1,6 +1,6 @@
 use bevy::{prelude::*, utils::HashMap};
 use std::ops::Add;
-use std::{hash::Hash, sync::Arc};
+use std::sync::Arc;
 
 #[derive(Component, Clone)]
 pub struct VariableList {
@@ -10,14 +10,28 @@ pub struct VariableList {
 
 #[derive(Clone)]
 pub enum Variable {
-    Independent(f64),
-    Dependent(Arc<dyn Fn(&VariableList) -> f64 + Send + Sync>),
+    Independent {
+        value: f64,
+    },
+    Dependent {
+        value: f64,
+        recalculated: bool,
+        equation: Arc<dyn Fn(&VariableList) -> f64 + Send + Sync>,
+    },
 }
 
-macro_rules! dependent {
-    ($t: ty, $e:expr) => {
-        Variable::Dependent(Arc::new(move |vars: &VariableList<$t>| return $e))
-    };
+impl Variable {
+    pub fn independent(value: f64) -> Variable {
+        Variable::Independent { value }
+    }
+
+    pub fn dependent(equation: Arc<dyn Fn(&VariableList) -> f64 + Send + Sync>) -> Variable {
+        Variable::Dependent {
+            value: -1.,
+            recalculated: false,
+            equation,
+        }
+    }
 }
 
 impl VariableList {
@@ -25,8 +39,8 @@ impl VariableList {
         VariableList {
             variables: {
                 let mut a: HashMap<String, Variable> = HashMap::new();
-                a.insert("0".into(), Variable::Independent(0.));
-                a.insert("1".into(), Variable::Independent(1.));
+                a.insert("0".into(), Variable::independent(0.));
+                a.insert("1".into(), Variable::independent(1.));
                 a
             },
             children: HashMap::new(),
@@ -44,8 +58,12 @@ impl VariableList {
         } else {
             let var = &self.variables.get(&key_string).unwrap().clone();
             match var {
-                Variable::Independent(x) => *x,
-                Variable::Dependent(f) => f(&self),
+                Variable::Independent { value } => *value,
+                Variable::Dependent {
+                    value,
+                    recalculated,
+                    equation,
+                } => *value,
             }
         }
     }
@@ -62,6 +80,10 @@ impl VariableList {
         (*self).children.get(&key.into()).unwrap()
     }
 }
+
+pub fn variable_devaluate(var_query: Query<&VariableList>) {}
+
+pub fn variable_update_system(var_query: Query<&VariableList>) {}
 
 impl Add for VariableList {
     type Output = VariableList;

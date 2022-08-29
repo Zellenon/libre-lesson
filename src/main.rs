@@ -126,12 +126,12 @@ fn setup_system(mut commands: Commands) {
     };
 
     let vars_upper = frame_maker(200.);
-    // let vars_lower = frame_maker(-200.);
-    // let mut master_vars = VariableList::new();
-    // master_vars.add_child("upper", vars_upper);
-    // master_vars.add_child("lower", vars_lower);
-    // commands.insert_resource(master_vars);
-    commands.insert_resource(vars_upper);
+    let vars_lower = frame_maker(-200.);
+    let mut master_vars = VariableList::new();
+    master_vars.add_child("upper", vars_upper);
+    master_vars.add_child("lower", vars_lower);
+    commands.insert_resource(master_vars);
+    // commands.insert_resource(vars_upper);
 }
 
 fn theta_update(
