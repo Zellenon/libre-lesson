@@ -1,9 +1,10 @@
-use bevy::asset::AssetServerSettings;
 use bevy::prelude::*;
+use bevy::{asset::AssetServerSettings, prelude::Component};
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 use bevy_prototype_lyon::{prelude::*, shapes::Circle};
 use drawing::DrawingPlugin;
-use std::sync::Arc;
+use std::marker::PhantomData;
+use std::{path::Component, sync::Arc};
 use variables::{Variable, VariableList};
 
 use crate::drawing::{BoundCircle, BoundLine, BoundPoint, BoundTracker};
@@ -176,7 +177,7 @@ fn update_sine_inspector(
         .show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.label("Frequency");
-                ui.add(egui::Slider::new(&mut inspector.freq, 0.5..=15.));
+                ui.add(egui::Slider::new(&mut inspector.freq, 1.0..=15.));
             });
             ui.horizontal(|ui| {
                 ui.label("Amplitude");
@@ -189,5 +190,19 @@ fn update_variables_from_gui(inspector: Res<SineInspector>, mut vars: ResMut<Var
     if inspector.is_changed() {
         vars.insert("freq", Variable::Independent(inspector.freq));
         vars.insert("amp", Variable::Independent(inspector.amp));
+    }
+}
+
+struct VariableUpdateEvent<T: Component>(f64, PhantomData<T>);
+
+fn update_variables<T: Component>(
+    var_query: Query<&T, &Variable>,
+    events: EventReader<VariableUpdateEvent<T>>,
+) {
+    for (marker, var) in var_query.iter_mut() {
+        if let Variable::Independent { value: v } = var {
+            let new_value = events.iter().next().unwrap();
+            var.value = new_value;
+        }
     }
 }
