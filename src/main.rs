@@ -1,12 +1,14 @@
-use bevy::asset::AssetServerSettings;
 use bevy::prelude::*;
+use bevy::{asset::AssetServerSettings, prelude::Component};
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 use bevy_prototype_lyon::{prelude::*, shapes::Circle};
 use drawing::DrawingPlugin;
+use std::marker::PhantomData;
 use std::sync::Arc;
-use variables::{Variable, VariableList};
+use variables::list::VariableList;
 
 use crate::drawing::{BoundCircle, BoundLine, BoundPoint, BoundTracker};
+use crate::variables::group::VariableGroup;
 
 mod drawing;
 mod variables;
@@ -48,43 +50,36 @@ fn main() {
 }
 
 fn setup_system(mut commands: Commands) {
-    use variables::Variable::*;
+    let mut frame_maker = |prefix: String, offset: f64| -> VariableGroup {
+        let mut vars: VariableGroup = VariableGroup::new();
+        let independent_vars = [
+            ("theta", 0.),
+            ("freq", 2.),
+            ("amp", 30.),
+            ("circle_x", -100.),
+            ("shift_y", offset),
+            ("point,rad", 10.),
+        ];
+        let dependent_vars: [(&str, Arc<dyn Fn(&VariableList) -> f64 + Send + Sync>); 4] = [
+            (
+                "cos(theta)",
+                Arc::new(move |vars: &VariableList| vars.get("theta").cos() * vars.get("amp")),
+            ),
+            (
+                "sin(theta)",
+                Arc::new(move |vars: &VariableList| vars.get("theta").sin() * vars.get("amp")),
+            ),
+            (
+                "circle_cos",
+                Arc::new(move |vars: &VariableList| vars.get("circle_x") + vars.get("cos(theta)")),
+            ),
+            (
+                "circle_sin",
+                Arc::new(move |vars: &VariableList| vars.get("sin(theta)")),
+            ),
+        ];
 
-    let mut frame_maker = |offset: f64| -> VariableList {
-        let mut vars: VariableList = VariableList::new();
-        vars.insert("theta", Independent(0.));
-        vars.insert("freq", Independent(2.));
-        vars.insert("amp", Independent(30.));
-        vars.insert("circle_x", Independent(-100.));
-        vars.insert("shift_y", Independent(offset));
-        vars.insert("point_rad", Independent(10.));
-        vars.insert(
-            "cos(theta)",
-            Variable::Dependent(Arc::new(move |vars: &VariableList| {
-                vars.get("theta").cos() * vars.get("amp")
-            })),
-        );
-        vars.insert(
-            "sin(theta)",
-            Variable::Dependent(Arc::new(move |vars: &VariableList| {
-                vars.get("theta").sin() * vars.get("amp") + vars.get("shift_y")
-            })),
-        );
-        vars.insert(
-            "circle_cos",
-            Variable::Dependent(Arc::new(move |vars: &VariableList| {
-                vars.get("circle_x") + vars.get("cos(theta)")
-            })),
-        );
-        vars.insert(
-            "circle_sin",
-            Variable::Dependent(Arc::new(move |vars: &VariableList| vars.get("sin(theta)"))),
-        );
-
-        let circle = Circle {
-            radius: 30.,
-            ..Circle::default()
-        };
+        let circle = Circle::default();
 
         commands
             .spawn_bundle(GeometryBuilder::build_as(
@@ -135,7 +130,7 @@ fn setup_system(mut commands: Commands) {
 
 fn theta_update(
     // time: Res<Time>,
-    mut vars: ResMut<VariableList>,
+    mut vars: ResMut<VariableGroup>,
 ) {
     // let delta = time.delta_seconds_f64();
     let delta = 0.02;
@@ -147,7 +142,7 @@ fn theta_update(
     );
 }
 
-fn line_update(mut sinequery: Query<(&mut Path, &mut SineLine)>, vars: Res<VariableList>) {
+fn line_update(mut sinequery: Query<(&mut Path, &mut SineLine)>, vars: Res<VariableGroup>) {
     let theta = vars.get("theta");
     let amp = vars.get("amp");
 
@@ -175,7 +170,7 @@ fn update_sine_inspector(
         .show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.label("Frequency");
-                ui.add(egui::Slider::new(&mut inspector.freq, 0.5..=15.));
+                ui.add(egui::Slider::new(&mut inspector.freq, 1.0..=15.));
             });
             ui.horizontal(|ui| {
                 ui.label("Amplitude");
@@ -184,9 +179,23 @@ fn update_sine_inspector(
         });
 }
 
-fn update_variables_from_gui(inspector: Res<SineInspector>, mut vars: ResMut<VariableList>) {
+fn update_variables_from_gui(inspector: Res<SineInspector>, mut vars: ResMut<VariableGroup>) {
     if inspector.is_changed() {
         vars.insert("freq", Variable::Independent(inspector.freq));
         vars.insert("amp", Variable::Independent(inspector.amp));
+    }
+}
+
+struct VariableUpdateEvent<T: Component>(f64, PhantomData<T>);
+
+fn update_variables<T: Component>(
+    var_query: Query<(&T, &Variable)>,
+    events: EventReader<VariableUpdateEvent<T>>,
+) {
+    for (marker, var) in var_query.iter_mut() {
+        if let Variable::Independent { value: v } = var {
+            let new_value = events.iter().next().unwrap();
+            var.value = new_value;
+        }
     }
 }
