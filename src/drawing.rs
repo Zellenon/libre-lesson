@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::{Path, PathBuilder, ShapePath};
 use bevy_prototype_lyon::shapes::Circle;
 
-use crate::variables::{Variable, VariableList};
+use crate::variables::{Variable, VariableGroup};
 
 pub struct DrawingPlugin;
 
@@ -33,7 +33,7 @@ impl BoundPoint {
         }
     }
 
-    pub fn vec2(&self, vars: &VariableList) -> Vec2 {
+    pub fn vec2(&self, vars: &VariableGroup) -> Vec2 {
         Vec2::new(
             vars.get(self.x.clone()) as f32,
             vars.get(self.y.clone()) as f32,
@@ -53,7 +53,10 @@ impl BoundLine {
     }
 }
 
-fn update_bound_lines(mut line_query: Query<(&mut BoundLine, &mut Path)>, vars: Res<VariableList>) {
+fn update_bound_lines(
+    mut line_query: Query<(&mut BoundLine, &mut Path)>,
+    vars: Res<VariableGroup>,
+) {
     for (line, mut path) in line_query.iter_mut() {
         let mut path_builder = PathBuilder::new();
         let p1: Vec2 = (*line).p1.vec2(&vars);
@@ -78,7 +81,7 @@ impl BoundCircle {
 
 fn update_bound_circles(
     mut circle_query: Query<(&mut Path, &mut Transform, &BoundCircle, &BoundPoint)>,
-    vars: Res<VariableList>,
+    vars: Res<VariableGroup>,
 ) {
     for (mut path, mut transform, circle, point) in circle_query.iter_mut() {
         let circle = Circle {
@@ -108,7 +111,7 @@ impl BoundTracker {
 
 fn update_bound_trackers(
     mut tracker_query: Query<(&mut Path, &mut BoundTracker)>,
-    vars: Res<VariableList>,
+    vars: Res<VariableGroup>,
 ) {
     for (mut line, mut tracker) in &mut tracker_query.iter_mut() {
         let mut path_builder = PathBuilder::new();
