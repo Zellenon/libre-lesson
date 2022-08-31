@@ -196,7 +196,7 @@ fn update_variables_from_gui(inspector: Res<SineInspector>, mut vars: ResMut<Var
 struct VariableUpdateEvent<T: Component>(f64, PhantomData<T>);
 
 fn update_variables<T: Component>(
-    var_query: Query<&T, &Variable>,
+    var_query: Query<(&T, &Variable)>,
     events: EventReader<VariableUpdateEvent<T>>,
 ) {
     for (marker, var) in var_query.iter_mut() {
