@@ -46,9 +46,31 @@ impl Variable {
     }
 }
 
+#[derive(Bundle)]
+pub struct VariableBundle {
+    variable: Variable,
+    name: Name,
+}
+
 pub fn build_variables<T: Into<String>, const DLEN: usize, const ILEN: usize>(
     mut commands: Commands,
     independent_vars: [(T, f64); ILEN],
     dependent_vars: [(T, Arc<dyn Fn(&VariableList) -> f64 + Send + Sync>); DLEN],
 ) {
+    for (name, var) in independent_vars {
+        commands.spawn_bundle(VariableBundle {
+            variable: Variable::Independent { value: var },
+            name: Name::new(name.into()),
+        });
+    }
+    for (name, var) in dependent_vars {
+        commands.spawn_bundle(VariableBundle {
+            variable: Variable::Dependent {
+                value: -1.,
+                recalculated: false,
+                equation: var,
+            },
+            name: Name::new(name.into()),
+        });
+    }
 }

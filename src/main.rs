@@ -50,8 +50,7 @@ fn main() {
 }
 
 fn setup_system(mut commands: Commands) {
-    let mut frame_maker = |prefix: String, offset: f64| -> VariableGroup {
-        let mut vars: VariableGroup = VariableGroup::new();
+    let mut frame_maker = |offset: f64| {
         let independent_vars = [
             ("theta", 0.),
             ("freq", 2.),
@@ -117,9 +116,9 @@ fn setup_system(mut commands: Commands) {
                 Transform::default(),
             ))
             .insert(BoundLine::new(point, BoundPoint::new("0", "sin(theta)")));
-        return vars;
     };
 
+    let mut vars: VariableGroup = VariableGroup::new();
     let vars_upper = frame_maker(200.);
     let vars_lower = frame_maker(-200.);
     let mut master_vars = VariableList::new();
