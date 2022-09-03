@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy::utils::hashbrown::HashMap;
-use std::sync::Arc;
 
 use super::variable::Variable;
 
@@ -18,31 +17,31 @@ impl VariableGroup {
         }
     }
 
-    pub fn get<T: Into<String>>(&self, key: T) -> f64 {
-        let key_string: String = key.into();
-        let mut parts = key_string.split('.').collect::<Vec<&str>>();
-        if parts.len() > 1 {
-            let child_key: String = (*parts.first().unwrap()).into();
-            parts.remove(0);
-            let child = self.get_child(child_key);
-            (*child).get(parts.join("."))
-        } else {
-            let var = &self.variables.get(&key_string).unwrap().clone();
-            match var {
-                Variable::Independent { value } => *value,
-                Variable::Dependent {
-                    value,
-                    recalculated,
-                    equation,
-                    parent,
-                } => *value,
-            }
-        }
-    }
+    // pub fn get<T: Into<String>>(&self, key: T) -> f64 {
+    //     let key_string: String = key.into();
+    //     let mut parts = key_string.split('.').collect::<Vec<&str>>();
+    //     if parts.len() > 1 {
+    //         let child_key: String = (*parts.first().unwrap()).into();
+    //         parts.remove(0);
+    //         let child = self.get_child(child_key);
+    //         (*child).get(parts.join("."))
+    //     } else {
+    //         let var = &self.variables.get(&key_string).unwrap().clone();
+    //         match var {
+    //             Variable::Independent { value } => *value,
+    //             Variable::Dependent {
+    //                 value,
+    //                 recalculated,
+    //                 equation,
+    //                 parent,
+    //             } => *value,
+    //         }
+    //     }
+    // }
 
-    pub fn insert<T: Into<String> + Clone>(&mut self, key: T, value: Variable) {
-        (*self).variables.insert(key.into(), value);
-    }
+    // pub fn insert<T: Into<String> + Clone>(&mut self, key: T, value: Variable) {
+    //     (*self).variables.insert(key.into(), value);
+    // }
 
     // pub fn add_child<T: Into<String>>(&mut self, key: T, child: Entity) {
     //     (*self).children.insert(key.into(), child);
