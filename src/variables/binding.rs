@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use std::sync::Arc;
 
+use super::variable::Variable;
+
 #[derive(Component)]
 struct VarBinding {
     variable: Entity,
@@ -18,7 +20,6 @@ fn update_bindings(
                     value: new_val,
                     recalculated: _,
                     equation: _,
-                    parent: parent,
                 } => (),
                 Variable::Independent { value: new_val } => (),
             };

@@ -5,72 +5,41 @@ use std::sync::Arc;
 
 use super::variable::Variable;
 
-pub struct VariableList {
-    variables: HashMap<String, Variable>, // Stores ids of Variables
+pub struct VariableList<'a> {
+    variables: HashMap<Entity, &'a Variable>, // Stores ids of Variables
+    names: HashMap<String, Entity>,
 }
 
-impl VariableList {
+impl<'a> VariableList<'a> {
     pub fn new() -> Self {
         VariableList {
             variables: HashMap::new(),
+            names: HashMap::new(),
         }
     }
-
     pub fn get<T: Into<String>>(&self, key: T) -> f64 {
-        let key_string: String = key.into();
-        let var = &self.variables.get(&key_string).unwrap().clone();
-        match var {
-            Variable::Independent { value } => *value,
-            Variable::Dependent {
-                value,
-                recalculated,
-                equation,
-                // parent,
-            } => *value,
+        self.get_value(self.get_entity(key))
+    }
+
+    pub fn get_value(&self, key: &Entity) -> f64 {
+        self.variables.get(key).unwrap().value()
+    }
+
+    pub fn get_entity<T: Into<String>>(&self, key: T) -> &Entity {
+        self.names.get(&key.into()).unwrap()
+    }
+
+    // pub fn insert<T: Into<String> + Clone>(&mut self, key: T, value: &Variable) {
+    //     (*self).variables.insert(key.into(), *value);
+    // }
+
+    pub fn from_query(query: &Query<(Entity, &Variable, &Name)>) -> Self {
+        let mut names = HashMap::new();
+        let mut variables = HashMap::new();
+        for (e, var, name) in query.iter() {
+            names.insert(name.into(), e);
+            variables.insert(e, var);
         }
+        Self { variables, names }
     }
-
-    pub fn insert<T: Into<String> + Clone>(&mut self, key: T, value: &Variable) {
-        (*self).variables.insert(key.into(), *value);
-    }
-
-    // pub fn add_child<T: Into<String>>(&mut self, key: T, child: VariableGroup) {
-    //     (*self).children.insert(key.into(), child);
-    // }
-
-    // fn get_child<T: Into<String>>(&self, key: T) -> &VariableGroup {
-    //     (*self).children.get(&key.into()).unwrap()
-    // }
-
-    // pub fn independent<T: Into<String> + Clone>(&mut self, name: T, value: f64) -> Variable {
-    //     let var = Variable::Independent { value };
-    //     self.insert(name, var);
-    //     var
-    // }
-
-    // pub fn dependent<T: Into<String> + Clone>(
-    //     &mut self,
-    //     name: T,
-    //     equation: Arc<dyn Fn(&VariableGroup) -> f64 + Send + Sync>,
-    // ) -> Variable {
-    //     let var = Variable::Dependent {
-    //         value: -1.,
-    //         recalculated: false,
-    //         equation,
-    //         parent: *self,
-    //     };
-    //     self.insert(name, var);
-    //     var
-    // }
 }
-
-// impl Add for VariableGroup {
-//     type Output = VariableGroup;
-
-//     fn add(self, rhs: Self) -> Self::Output {
-//         let mut new_map = VariableGroup::new();
-//         new_map.variables.extend(self.variables);
-//         new_map.variables.extend(rhs.variables);
-//         new_map
-//     }
-// }

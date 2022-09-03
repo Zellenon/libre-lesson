@@ -21,3 +21,11 @@ pub fn variable_devaluate(var_query: Query<&Variable>) {
         var.set_recalculated(false);
     }
 }
+
+pub fn variable_evaluate(
+    var_queries: ParamSet<(
+        Query<(Entity, &Variable, &Name)>,
+        Query<(Entity, &Variable, &Name)>,
+    )>,
+) {
+}

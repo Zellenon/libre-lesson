@@ -6,6 +6,7 @@ use drawing::DrawingPlugin;
 use std::marker::PhantomData;
 use std::sync::Arc;
 use variables::list::VariableList;
+use variables::variable::build_variables;
 
 use crate::drawing::{BoundCircle, BoundLine, BoundPoint, BoundTracker};
 use crate::variables::group::VariableGroup;
@@ -78,6 +79,8 @@ fn setup_system(mut commands: Commands) {
             ),
         ];
 
+        let vars = build_variables(commands, independent_vars, dependent_vars);
+
         let circle = Circle::default();
 
         commands
@@ -120,11 +123,11 @@ fn setup_system(mut commands: Commands) {
 
     let mut vars: VariableGroup = VariableGroup::new();
     let vars_upper = frame_maker(200.);
-    let vars_lower = frame_maker(-200.);
-    let mut master_vars = VariableList::new();
-    master_vars.add_child("upper", vars_upper);
-    master_vars.add_child("lower", vars_lower);
-    commands.insert_resource(master_vars);
+    // let vars_lower = frame_maker(-200.);
+    // let mut master_vars = VariableList::new();
+    // master_vars.add_child("upper", vars_upper);
+    // master_vars.add_child("lower", vars_lower);
+    // commands.insert_resource(master_vars);
 }
 
 fn theta_update(

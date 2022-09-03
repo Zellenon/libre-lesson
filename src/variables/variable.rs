@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::hashbrown::HashMap};
 use std::sync::Arc;
 
 use super::list::VariableList;
@@ -44,6 +44,17 @@ impl Variable {
             };
         }
     }
+
+    pub fn value(self) -> f64 {
+        match self {
+            Variable::Independent { value } => value,
+            Variable::Dependent {
+                value,
+                recalculated,
+                equation,
+            } => value,
+        }
+    }
 }
 
 #[derive(Bundle)]
@@ -52,25 +63,37 @@ pub struct VariableBundle {
     name: Name,
 }
 
-pub fn build_variables<T: Into<String>, const DLEN: usize, const ILEN: usize>(
+pub fn build_variables<const DLEN: usize, const ILEN: usize>(
     mut commands: Commands,
-    independent_vars: [(T, f64); ILEN],
-    dependent_vars: [(T, Arc<dyn Fn(&VariableList) -> f64 + Send + Sync>); DLEN],
-) {
+    independent_vars: [(&str, f64); ILEN],
+    dependent_vars: [(&str, Arc<dyn Fn(&VariableList) -> f64 + Send + Sync>); DLEN],
+) -> Arc<dyn Fn(&str) -> &Entity> {
+    let mut vars = HashMap::new();
     for (name, var) in independent_vars {
-        commands.spawn_bundle(VariableBundle {
-            variable: Variable::Independent { value: var },
-            name: Name::new(name.into()),
-        });
+        vars.insert(
+            name,
+            commands
+                .spawn_bundle(VariableBundle {
+                    variable: Variable::Independent { value: var },
+                    name: Name::new(name),
+                })
+                .id(),
+        );
     }
     for (name, var) in dependent_vars {
-        commands.spawn_bundle(VariableBundle {
-            variable: Variable::Dependent {
-                value: -1.,
-                recalculated: false,
-                equation: var,
-            },
-            name: Name::new(name.into()),
-        });
+        vars.insert(
+            name,
+            commands
+                .spawn_bundle(VariableBundle {
+                    variable: Variable::Dependent {
+                        value: -1.,
+                        recalculated: false,
+                        equation: var,
+                    },
+                    name: Name::new(name),
+                })
+                .id(),
+        );
     }
+    return Arc::new(|name: &str| -> &Entity { vars.get(name).unwrap() });
 }
