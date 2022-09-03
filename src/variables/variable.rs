@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use super::list::VariableList;
 
+type VarQuery<'a> = Query<'a, 'a, (Entity, &'a Variable, &'a Name)>;
+
 #[derive(Clone, Component)]
 pub enum Variable {
     Independent {
@@ -53,6 +55,16 @@ impl Variable {
                 recalculated,
                 equation,
             } => value,
+        }
+    }
+    pub fn set_value(&mut self, new_value: f64) {
+        match self {
+            Variable::Independent { value } => *value = new_value,
+            Variable::Dependent {
+                value,
+                recalculated,
+                equation,
+            } => *value = new_value,
         }
     }
 }
