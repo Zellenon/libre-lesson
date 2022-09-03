@@ -3,10 +3,11 @@ use bevy::{asset::AssetServerSettings, prelude::Component};
 use bevy_egui::{egui, EguiContext, EguiPlugin};
 use bevy_prototype_lyon::{prelude::*, shapes::Circle};
 use drawing::DrawingPlugin;
+use std::f64::consts::PI;
 use std::marker::PhantomData;
 use std::sync::Arc;
 use variables::list::VariableList;
-use variables::variable::build_variables;
+use variables::variable::{build_variables, Variable};
 
 use crate::drawing::{BoundCircle, BoundLine, BoundPoint, BoundTracker};
 use crate::variables::group::VariableGroup;
@@ -16,6 +17,15 @@ mod variables;
 
 #[derive(Component)]
 struct SineLine(Vec<f64>);
+
+#[derive(Component)]
+struct Time;
+
+#[derive(Component)]
+struct Freq;
+
+#[derive(Component)]
+struct Amp;
 
 #[derive(Debug)]
 struct SineInspector {
@@ -53,14 +63,22 @@ fn main() {
 fn setup_system(mut commands: Commands) {
     let mut frame_maker = |offset: f64| {
         let independent_vars = [
+            ("time", 0.),
             ("theta", 0.),
+            ("phase", 0.),
             ("freq", 2.),
             ("amp", 30.),
             ("circle_x", -100.),
             ("shift_y", offset),
             ("point,rad", 10.),
         ];
-        let dependent_vars: [(&str, Arc<dyn Fn(&VariableList) -> f64 + Send + Sync>); 4] = [
+        let dependent_vars: [(&str, Arc<dyn Fn(&VariableList) -> f64 + Send + Sync>); 5] = [
+            (
+                "theta",
+                Arc::new(move |vars: &VariableList| {
+                    (vars.get("time") * vars.get("freq")) % (2. * PI) + vars.get("pi")
+                }),
+            ),
             (
                 "cos(theta)",
                 Arc::new(move |vars: &VariableList| vars.get("theta").cos() * vars.get("amp")),
@@ -80,6 +98,9 @@ fn setup_system(mut commands: Commands) {
         ];
 
         let vars = build_variables(commands, independent_vars, dependent_vars);
+        commands.entity(*vars("time")).insert(Time);
+        commands.entity(*vars("amp")).insert(Amp);
+        commands.entity(*vars("Freq")).insert(Freq);
 
         let circle = Circle::default();
 
@@ -130,34 +151,11 @@ fn setup_system(mut commands: Commands) {
     // commands.insert_resource(master_vars);
 }
 
-fn theta_update(
-    // time: Res<Time>,
-    mut vars: ResMut<VariableGroup>,
-) {
+fn theta_update(time_query: Query<&Variable, With<Time>>) {
     // let delta = time.delta_seconds_f64();
     let delta = 0.02;
-    let theta = vars.get("theta");
-    let freq = vars.get("freq");
-    vars.insert(
-        "theta",
-        Variable::Independent(theta + delta * 3.1415 * freq),
-    );
-}
-
-fn line_update(mut sinequery: Query<(&mut Path, &mut SineLine)>, vars: Res<VariableGroup>) {
-    let theta = vars.get("theta");
-    let amp = vars.get("amp");
-
-    for (mut line, mut sine) in sinequery.iter_mut() {
-        let mut path_builder = PathBuilder::new();
-        let new_y = (theta).sin() * amp;
-        sine.0.insert(0, new_y);
-
-        for (index, vertex) in sine.0.iter().enumerate() {
-            path_builder.line_to(Vec2::new(index as f32 * 2., *vertex as f32));
-        }
-        let new_path = path_builder.build();
-        *line = new_path;
+    for var in time_query.iter_mut() {
+        var.set_value(var.value() + delta);
     }
 }
 
@@ -181,10 +179,12 @@ fn update_sine_inspector(
         });
 }
 
-fn update_variables_from_gui(inspector: Res<SineInspector>, mut vars: ResMut<VariableGroup>) {
+fn update_variables_from_gui(
+    inspector: Res<SineInspector>,
+    mut vars: ParamSet<(Query<&Variable, With<Freq>>, Query<&Variable, With<Amp>>)>,
+) {
     if inspector.is_changed() {
-        vars.insert("freq", Variable::Independent(inspector.freq));
-        vars.insert("amp", Variable::Independent(inspector.amp));
+        // TODO: This is always true?
     }
 }
 
@@ -194,10 +194,8 @@ fn update_variables<T: Component>(
     var_query: Query<(&T, &Variable)>,
     events: EventReader<VariableUpdateEvent<T>>,
 ) {
+    let val = events.iter().last().unwrap().0;
     for (marker, var) in var_query.iter_mut() {
-        if let Variable::Independent { value: v } = var {
-            let new_value = events.iter().next().unwrap();
-            var.value = new_value;
-        }
+        (*var).set_value(val);
     }
 }
