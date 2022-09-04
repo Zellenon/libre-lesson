@@ -14,8 +14,6 @@ use variables::lambda::{Add, Cos, Mod, Mul, Num, Sin, Var};
 use variables::variable::{dependent, independent, Variable};
 use variables::VariablePlugin;
 
-use crate::variables::group::VariableGroup;
-
 mod drawing;
 mod variables;
 
@@ -148,12 +146,10 @@ fn setup_system(mut commands: Commands) {
             .insert(BoundLine::new(circle_cos, circle_sin, zero, sin_theta));
     };
 
-    // frame_maker(0.);
     frame_maker(200.);
 }
 
 fn theta_update(mut time_query: Query<&mut Variable, With<Time>>) {
-    // let delta = time.delta_seconds_f64();
     let delta = 0.02;
     for mut var in time_query.iter_mut() {
         let old_value = (*var).value();

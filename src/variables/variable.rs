@@ -3,8 +3,6 @@ use std::sync::Arc;
 
 use super::lambda::{Lam, Num};
 
-type VarQuery<'a> = Query<'a, 'a, (Entity, &'a Variable, &'a Name)>;
-
 #[derive(Clone, Component)]
 pub struct Independent;
 #[derive(Clone, Component)]
@@ -18,9 +16,7 @@ pub enum Variable {
     Dependent {
         value: f64,
         recalculated: bool,
-        // equation: Arc<dyn Fn(&VariableList) -> f64 + Send + Sync>,
         equation: Arc<dyn Lam>,
-        // parent: VariableList,
     },
 }
 
@@ -40,9 +36,9 @@ impl Variable {
 
     pub fn set_recalculated(&mut self, is_recalculated: bool) {
         if let Variable::Dependent {
-            value: v,
+            value: _v,
             recalculated: r,
-            equation: e,
+            equation: _e,
         } = self
         {
             *r = is_recalculated;

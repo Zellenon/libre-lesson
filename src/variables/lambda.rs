@@ -124,7 +124,7 @@ impl Lam for Var {
 
 pub struct Num(pub f64);
 impl Lam for Num {
-    fn get(&self, context: &Vec<&mut (Entity, Mut<Variable>)>) -> f64 {
+    fn get(&self, _context: &Vec<&mut (Entity, Mut<Variable>)>) -> f64 {
         self.0
     }
 

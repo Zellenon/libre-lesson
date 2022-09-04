@@ -7,7 +7,6 @@ pub mod binding;
 pub mod debug;
 pub mod group;
 pub mod lambda;
-pub mod list;
 pub mod variable;
 
 pub struct VariablePlugin;
