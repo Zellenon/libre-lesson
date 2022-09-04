@@ -1,15 +1,23 @@
 use bevy::prelude::*;
-use std::sync::Arc;
 
 use super::variable::Variable;
 
-#[derive(Component)]
-struct VarBinding {
-    variable: Entity,
-    value: f64,
+#[derive(Component, Clone, PartialEq)]
+pub struct VarBinding {
+    pub variable: Entity,
+    pub value: f64,
 }
 
-fn update_bindings(
+impl VarBinding {
+    pub fn new(master: Entity) -> Self {
+        Self {
+            variable: master,
+            value: 0.,
+        }
+    }
+}
+
+pub fn update_bindings(
     mut binding_query: Query<&mut VarBinding>,
     var_query: Query<(Entity, &Variable)>,
 ) {
@@ -17,12 +25,18 @@ fn update_bindings(
         for binding in binding_query.iter_mut().filter(|w| w.variable == e) {
             match var {
                 Variable::Dependent {
-                    value: new_val,
+                    value: new_value,
                     recalculated: _,
                     equation: _,
-                } => (),
-                Variable::Independent { value: new_val } => (),
+                } => binding.value = *new_value,
+                Variable::Independent { value: new_value } => binding.value = *new_value,
             };
         }
     }
+}
+
+pub fn bind(commands: &mut Commands, master: Entity) -> VarBinding {
+    let binding = VarBinding::new(master);
+    commands.spawn().insert(binding);
+    binding
 }

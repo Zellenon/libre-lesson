@@ -3,13 +3,13 @@ use bevy::{prelude::*, utils::HashMap};
 use super::variable::Variable;
 
 pub trait Lam: Send + Sync {
-    fn get(&self, context: HashMap<Entity, &Variable>) -> f64;
+    fn get(&self, context: &HashMap<Entity, &Variable>) -> f64;
     fn children(&self) -> Vec<Entity>;
 }
 
 pub struct Add<T: Lam, U: Lam>(pub T, pub U);
 impl<T: Lam, U: Lam> Lam for Add<T, U> {
-    fn get(&self, context: HashMap<Entity, &Variable>) -> f64 {
+    fn get(&self, context: &HashMap<Entity, &Variable>) -> f64 {
         self.0.get(context) + self.1.get(context)
     }
 
@@ -22,7 +22,7 @@ impl<T: Lam, U: Lam> Lam for Add<T, U> {
 
 pub struct Sub<T: Lam, U: Lam>(pub T, pub U);
 impl<T: Lam, U: Lam> Lam for Sub<T, U> {
-    fn get(&self, context: HashMap<Entity, &Variable>) -> f64 {
+    fn get(&self, context: &HashMap<Entity, &Variable>) -> f64 {
         self.0.get(context) - self.1.get(context)
     }
 
@@ -35,7 +35,7 @@ impl<T: Lam, U: Lam> Lam for Sub<T, U> {
 
 pub struct Mul<T: Lam, U: Lam>(pub T, pub U);
 impl<T: Lam, U: Lam> Lam for Mul<T, U> {
-    fn get(&self, context: HashMap<Entity, &Variable>) -> f64 {
+    fn get(&self, context: &HashMap<Entity, &Variable>) -> f64 {
         self.0.get(context) * self.1.get(context)
     }
 
@@ -48,7 +48,7 @@ impl<T: Lam, U: Lam> Lam for Mul<T, U> {
 
 pub struct Div<T: Lam, U: Lam>(pub T, pub U);
 impl<T: Lam, U: Lam> Lam for Div<T, U> {
-    fn get(&self, context: HashMap<Entity, &Variable>) -> f64 {
+    fn get(&self, context: &HashMap<Entity, &Variable>) -> f64 {
         self.0.get(context) / self.1.get(context)
     }
 
@@ -61,7 +61,7 @@ impl<T: Lam, U: Lam> Lam for Div<T, U> {
 
 pub struct Sin<T: Lam>(pub T);
 impl<T: Lam> Lam for Sin<T> {
-    fn get(&self, context: HashMap<Entity, &Variable>) -> f64 {
+    fn get(&self, context: &HashMap<Entity, &Variable>) -> f64 {
         self.0.get(context).sin()
     }
 
@@ -72,7 +72,7 @@ impl<T: Lam> Lam for Sin<T> {
 
 pub struct Cos<T: Lam>(pub T);
 impl<T: Lam> Lam for Cos<T> {
-    fn get(&self, context: HashMap<Entity, &Variable>) -> f64 {
+    fn get(&self, context: &HashMap<Entity, &Variable>) -> f64 {
         self.0.get(context).cos()
     }
 
@@ -83,7 +83,7 @@ impl<T: Lam> Lam for Cos<T> {
 
 pub struct Tan<T: Lam>(pub T);
 impl<T: Lam> Lam for Tan<T> {
-    fn get(&self, context: HashMap<Entity, &Variable>) -> f64 {
+    fn get(&self, context: &HashMap<Entity, &Variable>) -> f64 {
         self.0.get(context).tan()
     }
 
@@ -94,7 +94,7 @@ impl<T: Lam> Lam for Tan<T> {
 
 pub struct Var(pub Entity);
 impl Lam for Var {
-    fn get(&self, context: HashMap<Entity, &Variable>) -> f64 {
+    fn get(&self, context: &HashMap<Entity, &Variable>) -> f64 {
         context.get(&self.0).unwrap().value()
     }
 
@@ -105,7 +105,7 @@ impl Lam for Var {
 
 pub struct Num(pub f64);
 impl Lam for Num {
-    fn get(&self, context: HashMap<Entity, &Variable>) -> f64 {
+    fn get(&self, context: &HashMap<Entity, &Variable>) -> f64 {
         self.0
     }
 

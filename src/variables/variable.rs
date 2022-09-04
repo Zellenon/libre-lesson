@@ -1,10 +1,7 @@
 use bevy::{prelude::*, utils::hashbrown::HashMap};
 use std::sync::Arc;
 
-use super::{
-    lambda::{Lam, Num},
-    list::VariableList,
-};
+use super::lambda::{Lam, Num};
 
 type VarQuery<'a> = Query<'a, 'a, (Entity, &'a Variable, &'a Name)>;
 
@@ -30,9 +27,9 @@ pub enum Variable {
 impl Variable {
     pub fn recalculated(&self) -> bool {
         if let Variable::Dependent {
-            value: v,
+            value: _,
             recalculated: r,
-            equation: e,
+            equation: _,
         } = self
         {
             return *r;
@@ -41,29 +38,25 @@ impl Variable {
         }
     }
 
-    pub fn set_recalculated(&self, is_recalculated: bool) {
+    pub fn set_recalculated(&mut self, is_recalculated: bool) {
         if let Variable::Dependent {
             value: v,
             recalculated: r,
             equation: e,
         } = self
         {
-            *self = Variable::Dependent {
-                value: *v,
-                recalculated: is_recalculated,
-                equation: *e,
-            };
+            *r = is_recalculated;
         }
     }
 
-    pub fn value(self) -> f64 {
+    pub fn value(&self) -> f64 {
         match self {
-            Variable::Independent { value } => value,
+            Variable::Independent { value } => *value,
             Variable::Dependent {
                 value,
-                recalculated,
-                equation,
-            } => value,
+                recalculated: _,
+                equation: _,
+            } => *value,
         }
     }
     pub fn set_value(&mut self, new_value: f64) {
@@ -71,35 +64,35 @@ impl Variable {
             Variable::Independent { value } => *value = new_value,
             Variable::Dependent {
                 value,
-                recalculated,
-                equation,
+                recalculated: _,
+                equation: _,
             } => *value = new_value,
         }
     }
 
     pub fn equation(&self) -> Arc<dyn Lam> {
         match self {
-            Variable::Independent { value } => Arc::new(Num(*value)),
+            Variable::Independent { value } => (Arc::new(Num(*value)) as Arc<dyn Lam>),
             Variable::Dependent {
-                value,
-                recalculated,
+                value: _,
+                recalculated: _,
                 equation,
-            } => *equation,
+            } => equation.clone(),
         }
     }
 
     pub fn children(&self) -> Vec<Entity> {
         match self {
-            Variable::Independent { value } => Vec::new(),
+            Variable::Independent { value: _ } => Vec::new(),
             Variable::Dependent {
-                value,
-                recalculated,
+                value: _,
+                recalculated: _,
                 equation,
             } => equation.children(),
         }
     }
 
-    pub fn calculate(&mut self, context: HashMap<Entity, &Variable>) {
+    pub fn calculate(&mut self, context: &HashMap<Entity, &Variable>) {
         self.set_recalculated(true);
         self.set_value(self.equation().get(context));
     }
@@ -146,7 +139,11 @@ pub struct VariableBundle {
 //     return Arc::new(|name: &str| -> &Entity { vars.get(name).unwrap() });
 // }
 
-pub fn dependent(commands: &mut Commands, name: &str, equation: impl Lam) -> Entity {
+pub fn dependent<T: Lam + 'static>(
+    commands: &mut Commands,
+    name: &'static str,
+    equation: T,
+) -> Entity {
     commands
         .spawn()
         .insert(Name::new(name))
@@ -159,7 +156,7 @@ pub fn dependent(commands: &mut Commands, name: &str, equation: impl Lam) -> Ent
         .id()
 }
 
-pub fn independent(commands: &mut Commands, name: &str, value: f64) -> Entity {
+pub fn independent(commands: &mut Commands, name: &'static str, value: f64) -> Entity {
     commands
         .spawn()
         .insert(Name::new(name))

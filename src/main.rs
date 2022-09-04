@@ -6,8 +6,9 @@ use drawing::DrawingPlugin;
 use std::f64::consts::PI;
 use std::marker::PhantomData;
 use std::sync::Arc;
+use variables::lambda::Num;
 use variables::list::VariableList;
-use variables::variable::{build_variables, Variable};
+use variables::variable::{dependent, independent, Variable};
 
 use crate::drawing::{BoundCircle, BoundLine, BoundPoint, BoundTracker};
 use crate::variables::group::VariableGroup;
@@ -50,7 +51,7 @@ fn main() {
         .add_plugin(ShapePlugin)
         .add_startup_system(setup_system)
         .add_system(theta_update)
-        .add_system(line_update)
+        // .add_system(line_update)
         // .add_system(circle_update)
         .insert_resource(SineInspector::default())
         .add_plugin(EguiPlugin)
@@ -70,9 +71,17 @@ fn setup_system(mut commands: Commands) {
             ("amp", 30.),
             ("circle_x", -100.),
             ("shift_y", offset),
-            ("point,rad", 10.),
+            ("point_rad", 10.),
         ];
-        let dependent_vars: [(&str, Arc<dyn Fn(&VariableList) -> f64 + Send + Sync>); 5] = [
+        let time = independent(&mut commands, "time", 0.);
+        let theta = independent(&mut commands, "theta", 0.);
+        let phase = independent(&mut commands, "phase", 0.);
+        let freq = independent(&mut commands, "freq", 2.);
+        let amp = independent(&mut commands, "amp", 30.);
+        let circle_x = independent(&mut commands, "circle_x", -100.);
+        let shift_y = independent(&mut commands, "shift_y", offset);
+        let point_rad = independent(&mut commands, "point_rad", 10.);
+        let shift_y: [(&str, Arc<dyn Fn(&VariableList) -> f64 + Send + Sync>); 5] = [
             (
                 "theta",
                 Arc::new(move |vars: &VariableList| {
@@ -97,49 +106,52 @@ fn setup_system(mut commands: Commands) {
             ),
         ];
 
-        let vars = build_variables(commands, independent_vars, dependent_vars);
-        commands.entity(*vars("time")).insert(Time);
-        commands.entity(*vars("amp")).insert(Amp);
-        commands.entity(*vars("Freq")).insert(Freq);
+        // let vars = build_variables(commands, independent_vars, dependent_vars);
+        // commands.entity(*vars("time")).insert(Time);
+        // commands.entity(*vars("amp")).insert(Amp);
+        // commands.entity(*vars("Freq")).insert(Freq);
 
-        let circle = Circle::default();
+        // let circle = Circle::default();
 
-        commands
-            .spawn_bundle(GeometryBuilder::build_as(
-                &circle,
-                DrawMode::Stroke(StrokeMode::new(Color::WHITE, 3.)),
-                Transform::default(),
-            ))
-            .insert(BoundCircle::new("amp"))
-            .insert(BoundPoint::new("circle_x", "shift_y"));
+        // commands
+        //     .spawn_bundle(GeometryBuilder::build_as(
+        //         &circle,
+        //         DrawMode::Stroke(StrokeMode::new(Color::WHITE, 3.)),
+        //         Transform::default(),
+        //     ))
+        //     .insert(BoundCircle::new(vars("amp")))
+        //     .insert(BoundPoint::new(vars("circle_x"), vars("shift_y")));
 
-        let point = BoundPoint::new("circle_cos", "circle_sin");
-        commands
-            .spawn_bundle(GeometryBuilder::build_as(
-                &circle,
-                DrawMode::Stroke(StrokeMode::new(Color::RED, 3.)),
-                Transform::default(),
-            ))
-            .insert(BoundCircle::new("point_rad"))
-            .insert(point.clone());
+        // let point = BoundPoint::new(vars("circle_cos"), vars("circle_sin"));
+        // commands
+        //     .spawn_bundle(GeometryBuilder::build_as(
+        //         &circle,
+        //         DrawMode::Stroke(StrokeMode::new(Color::RED, 3.)),
+        //         Transform::default(),
+        //     ))
+        //     .insert(BoundCircle::new(vars("point_rad")))
+        //     .insert(point.clone());
 
-        let path_builder = PathBuilder::new();
-        let line = path_builder.build();
+        // let path_builder = PathBuilder::new();
+        // let line = path_builder.build();
 
-        commands
-            .spawn_bundle(GeometryBuilder::build_as(
-                &line,
-                DrawMode::Stroke(StrokeMode::new(Color::WHITE, 3.0)),
-                Transform::default(),
-            ))
-            .insert(BoundTracker::new("sin(theta)"));
-        commands
-            .spawn_bundle(GeometryBuilder::build_as(
-                &line,
-                DrawMode::Stroke(StrokeMode::new(Color::WHITE, 2.0)),
-                Transform::default(),
-            ))
-            .insert(BoundLine::new(point, BoundPoint::new("0", "sin(theta)")));
+        // commands
+        //     .spawn_bundle(GeometryBuilder::build_as(
+        //         &line,
+        //         DrawMode::Stroke(StrokeMode::new(Color::WHITE, 3.0)),
+        //         Transform::default(),
+        //     ))
+        //     .insert(BoundTracker::new(vars("sin(theta)")));
+        // commands
+        //     .spawn_bundle(GeometryBuilder::build_as(
+        //         &line,
+        //         DrawMode::Stroke(StrokeMode::new(Color::WHITE, 2.0)),
+        //         Transform::default(),
+        //     ))
+        //     .insert(BoundLine::new(
+        //         point,
+        //         BoundPoint::new(vars("0"), vars("sin(theta)")),
+        //     ));
     };
 
     let mut vars: VariableGroup = VariableGroup::new();
@@ -151,11 +163,12 @@ fn setup_system(mut commands: Commands) {
     // commands.insert_resource(master_vars);
 }
 
-fn theta_update(time_query: Query<&Variable, With<Time>>) {
+fn theta_update(mut time_query: Query<&mut Variable, With<Time>>) {
     // let delta = time.delta_seconds_f64();
     let delta = 0.02;
-    for var in time_query.iter_mut() {
-        var.set_value(var.value() + delta);
+    for mut var in time_query.iter_mut() {
+        let old_value = (*var).value();
+        var.set_value(old_value + delta);
     }
 }
 
@@ -191,11 +204,11 @@ fn update_variables_from_gui(
 struct VariableUpdateEvent<T: Component>(f64, PhantomData<T>);
 
 fn update_variables<T: Component>(
-    var_query: Query<(&T, &Variable)>,
-    events: EventReader<VariableUpdateEvent<T>>,
+    mut var_query: Query<(&T, &mut Variable)>,
+    mut events: EventReader<VariableUpdateEvent<T>>,
 ) {
     let val = events.iter().last().unwrap().0;
-    for (marker, var) in var_query.iter_mut() {
-        (*var).set_value(val);
+    for (marker, mut var) in var_query.iter_mut() {
+        (var).set_value(val);
     }
 }
