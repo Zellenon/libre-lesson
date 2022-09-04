@@ -5,10 +5,10 @@ use bevy_prototype_lyon::{prelude::*, shapes::Circle};
 use drawing::DrawingPlugin;
 use std::f64::consts::PI;
 use std::marker::PhantomData;
-use std::sync::Arc;
-use variables::lambda::Num;
-use variables::list::VariableList;
+use variables::binding::bind;
+use variables::lambda::{Add, Cos, Mod, Mul, Num, Sin, Var};
 use variables::variable::{dependent, independent, Variable};
+use variables::VariablePlugin;
 
 use crate::drawing::{BoundCircle, BoundLine, BoundPoint, BoundTracker};
 use crate::variables::group::VariableGroup;
@@ -58,100 +58,87 @@ fn main() {
         .add_system(update_sine_inspector)
         .add_system(update_variables_from_gui)
         .add_plugin(DrawingPlugin)
+        .add_plugin(VariablePlugin)
         .run();
 }
 
 fn setup_system(mut commands: Commands) {
     let mut frame_maker = |offset: f64| {
-        let independent_vars = [
-            ("time", 0.),
-            ("theta", 0.),
-            ("phase", 0.),
-            ("freq", 2.),
-            ("amp", 30.),
-            ("circle_x", -100.),
-            ("shift_y", offset),
-            ("point_rad", 10.),
-        ];
         let time = independent(&mut commands, "time", 0.);
-        let theta = independent(&mut commands, "theta", 0.);
         let phase = independent(&mut commands, "phase", 0.);
         let freq = independent(&mut commands, "freq", 2.);
         let amp = independent(&mut commands, "amp", 30.);
         let circle_x = independent(&mut commands, "circle_x", -100.);
         let shift_y = independent(&mut commands, "shift_y", offset);
         let point_rad = independent(&mut commands, "point_rad", 10.);
-        let shift_y: [(&str, Arc<dyn Fn(&VariableList) -> f64 + Send + Sync>); 5] = [
-            (
-                "theta",
-                Arc::new(move |vars: &VariableList| {
-                    (vars.get("time") * vars.get("freq")) % (2. * PI) + vars.get("pi")
-                }),
-            ),
-            (
-                "cos(theta)",
-                Arc::new(move |vars: &VariableList| vars.get("theta").cos() * vars.get("amp")),
-            ),
-            (
-                "sin(theta)",
-                Arc::new(move |vars: &VariableList| vars.get("theta").sin() * vars.get("amp")),
-            ),
-            (
-                "circle_cos",
-                Arc::new(move |vars: &VariableList| vars.get("circle_x") + vars.get("cos(theta)")),
-            ),
-            (
-                "circle_sin",
-                Arc::new(move |vars: &VariableList| vars.get("sin(theta)")),
-            ),
-        ];
+        let zero = independent(&mut commands, "0", 0.);
+        let theta = dependent(
+            &mut commands,
+            "theta",
+            Add(Var(phase), Mod(Mul(Var(time), Var(freq)), Num(2. * PI))),
+        );
+        let cos_theta = dependent(&mut commands, "cos(theta)", Mul(Var(amp), Cos(Var(theta))));
+        let sin_theta = dependent(&mut commands, "sin(theta)", Mul(Var(amp), Sin(Var(theta))));
+        let circle_cos = dependent(
+            &mut commands,
+            "circle_cos",
+            Add(Var(circle_x), Var(cos_theta)),
+        );
+        let circle_sin = dependent(&mut commands, "circle_sin", Var(sin_theta));
 
-        // let vars = build_variables(commands, independent_vars, dependent_vars);
-        // commands.entity(*vars("time")).insert(Time);
-        // commands.entity(*vars("amp")).insert(Amp);
-        // commands.entity(*vars("Freq")).insert(Freq);
+        commands.entity(time).insert(Time);
+        commands.entity(amp).insert(Amp);
+        commands.entity(freq).insert(Freq);
 
-        // let circle = Circle::default();
+        let circle = Circle::default();
 
-        // commands
-        //     .spawn_bundle(GeometryBuilder::build_as(
-        //         &circle,
-        //         DrawMode::Stroke(StrokeMode::new(Color::WHITE, 3.)),
-        //         Transform::default(),
-        //     ))
-        //     .insert(BoundCircle::new(vars("amp")))
-        //     .insert(BoundPoint::new(vars("circle_x"), vars("shift_y")));
+        let amp_circle = BoundCircle::new(bind(&mut commands, amp));
+        let amp_circle_center =
+            BoundPoint::new(bind(&mut commands, circle_x), bind(&mut commands, shift_y));
+        commands
+            .spawn_bundle(GeometryBuilder::build_as(
+                &circle,
+                DrawMode::Stroke(StrokeMode::new(Color::WHITE, 3.)),
+                Transform::default(),
+            ))
+            .insert(amp_circle)
+            .insert(amp_circle_center);
 
-        // let point = BoundPoint::new(vars("circle_cos"), vars("circle_sin"));
-        // commands
-        //     .spawn_bundle(GeometryBuilder::build_as(
-        //         &circle,
-        //         DrawMode::Stroke(StrokeMode::new(Color::RED, 3.)),
-        //         Transform::default(),
-        //     ))
-        //     .insert(BoundCircle::new(vars("point_rad")))
-        //     .insert(point.clone());
+        let rad_point = BoundPoint::new(
+            bind(&mut commands, circle_cos),
+            bind(&mut commands, circle_sin),
+        );
+        let rad_circle = BoundCircle::new(bind(&mut commands, point_rad));
+        commands
+            .spawn_bundle(GeometryBuilder::build_as(
+                &circle,
+                DrawMode::Stroke(StrokeMode::new(Color::RED, 3.)),
+                Transform::default(),
+            ))
+            .insert(rad_circle)
+            .insert(rad_point.clone());
 
-        // let path_builder = PathBuilder::new();
-        // let line = path_builder.build();
+        let path_builder = PathBuilder::new();
+        let line = path_builder.build();
 
-        // commands
-        //     .spawn_bundle(GeometryBuilder::build_as(
-        //         &line,
-        //         DrawMode::Stroke(StrokeMode::new(Color::WHITE, 3.0)),
-        //         Transform::default(),
-        //     ))
-        //     .insert(BoundTracker::new(vars("sin(theta)")));
-        // commands
-        //     .spawn_bundle(GeometryBuilder::build_as(
-        //         &line,
-        //         DrawMode::Stroke(StrokeMode::new(Color::WHITE, 2.0)),
-        //         Transform::default(),
-        //     ))
-        //     .insert(BoundLine::new(
-        //         point,
-        //         BoundPoint::new(vars("0"), vars("sin(theta)")),
-        //     ));
+        let sine_tracker = BoundTracker::new(bind(&mut commands, sin_theta));
+        let tracker_point =
+            BoundPoint::new(bind(&mut commands, zero), bind(&mut commands, sin_theta));
+        let connection = BoundLine::new(rad_point, tracker_point);
+        commands
+            .spawn_bundle(GeometryBuilder::build_as(
+                &line,
+                DrawMode::Stroke(StrokeMode::new(Color::WHITE, 3.0)),
+                Transform::default(),
+            ))
+            .insert(sine_tracker);
+        commands
+            .spawn_bundle(GeometryBuilder::build_as(
+                &line,
+                DrawMode::Stroke(StrokeMode::new(Color::WHITE, 2.0)),
+                Transform::default(),
+            ))
+            .insert(connection);
     };
 
     let mut vars: VariableGroup = VariableGroup::new();

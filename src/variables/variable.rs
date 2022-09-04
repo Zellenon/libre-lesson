@@ -92,7 +92,7 @@ impl Variable {
         }
     }
 
-    pub fn calculate(&mut self, context: &HashMap<Entity, &Variable>) {
+    pub fn calculate(&mut self, context: &Vec<&mut (Entity, Mut<Variable>)>) {
         self.set_recalculated(true);
         self.set_value(self.equation().get(context));
     }
@@ -103,41 +103,6 @@ pub struct VariableBundle {
     variable: Variable,
     name: Name,
 }
-
-// pub fn build_variables<const DLEN: usize, const ILEN: usize>(
-//     mut commands: Commands,
-//     independent_vars: [(&str, f64); ILEN],
-//     dependent_vars: [(&str, Arc<dyn Fn(&VariableList) -> f64 + Send + Sync>); DLEN],
-// ) -> Arc<dyn Fn(&str) -> &Entity> {
-//     let mut vars = HashMap::new();
-//     for (name, var) in independent_vars {
-//         vars.insert(
-//             name,
-//             commands
-//                 .spawn_bundle(VariableBundle {
-//                     variable: Variable::Independent { value: var },
-//                     name: Name::new(name),
-//                 })
-//                 .id(),
-//         );
-//     }
-//     for (name, var) in dependent_vars {
-//         vars.insert(
-//             name,
-//             commands
-//                 .spawn_bundle(VariableBundle {
-//                     variable: Variable::Dependent {
-//                         value: -1.,
-//                         recalculated: false,
-//                         equation: var,
-//                     },
-//                     name: Name::new(name),
-//                 })
-//                 .id(),
-//         );
-//     }
-//     return Arc::new(|name: &str| -> &Entity { vars.get(name).unwrap() });
-// }
 
 pub fn dependent<T: Lam + 'static>(
     commands: &mut Commands,

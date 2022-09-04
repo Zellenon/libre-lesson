@@ -33,7 +33,7 @@ impl<'a> VariableList<'a> {
     //     (*self).variables.insert(key.into(), *value);
     // }
 
-    pub fn from_query(query: &Query<(Entity, &Variable, &Name)>) -> Self {
+    pub fn from_query(query: &'a Query<(Entity, &Variable, &Name)>) -> Self {
         let mut names = HashMap::new();
         let mut variables = HashMap::new();
         for (e, var, name) in query.iter() {

@@ -1,7 +1,6 @@
-use bevy::ecs::query::QueryIter;
 use bevy::prelude::*;
-use bevy::utils::hashbrown::HashMap;
 
+use self::binding::update_bindings;
 pub use self::group::VariableGroup;
 pub use self::variable::{Dependent, Independent, Variable};
 
@@ -17,6 +16,7 @@ impl Plugin for VariablePlugin {
     fn build(&self, app: &mut App) {
         app.add_system(devaluate_variables);
         app.add_system(evaluate_variables.after(devaluate_variables));
+        app.add_system(update_bindings.after(evaluate_variables));
     }
 }
 
@@ -34,14 +34,28 @@ pub fn evaluate_variables(
     mut var_query: Query<(Entity, &mut Variable)>,
 ) {
     // let mut vars: Vec<(Entity, Mut<'_, Variable>, &Name)> = var_query.iter_mut().collect();
-    let vars: Vec<_> = var_query.iter_mut().collect();
-    let (mut finished, mut unfinished): (_, Vec<_>) =
-        vars.into_iter().partition(|x| x.1.recalculated());
 
-    while unfinished.len() > 0 {
-        let next_batch = Vec::new();
-        let context = finished.iter().collect::<HashMap<_, _>>();
-        for var in unfinished.iter() {}
+    // let mut vars: Vec<_> = var_query.iter_mut().collect();
+    // let (mut finished, mut unfinished): (_, Vec<_>) =
+    //     vars.iter_mut().partition(|x| x.1.recalculated());
+
+    while var_query.iter().any(|w| !w.1.recalculated()) {
+        // let mut next_batch: Vec<(Entity, Mut<Variable>)> = Vec::new();
+        let mut vars: Vec<_> = var_query.iter_mut().collect();
+        let (finished, mut unfinished): (_, Vec<_>) =
+            vars.iter_mut().partition(|x| x.1.recalculated());
+        for var in unfinished.iter_mut().filter(|w| {
+            let needed = (*w.1).equation().children();
+            needed.iter().all(|v| {
+                finished
+                    .iter()
+                    .map(|u| u.0)
+                    .collect::<Vec<Entity>>()
+                    .contains(&v)
+            })
+        }) {
+            var.1.calculate(&finished);
+        }
     }
 
     // Old Stuff

@@ -64,7 +64,7 @@ pub struct BoundCircle {
 
 impl BoundCircle {
     pub fn new(radius: VarBinding) -> Self {
-        Self { radius: radius }
+        Self { radius }
     }
 }
 

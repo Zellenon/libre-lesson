@@ -1,15 +1,15 @@
-use bevy::{prelude::*, utils::HashMap};
+use bevy::prelude::*;
 
 use super::variable::Variable;
 
 pub trait Lam: Send + Sync {
-    fn get(&self, context: &HashMap<Entity, &Variable>) -> f64;
+    fn get(&self, context: &Vec<&mut (Entity, Mut<Variable>)>) -> f64;
     fn children(&self) -> Vec<Entity>;
 }
 
 pub struct Add<T: Lam, U: Lam>(pub T, pub U);
 impl<T: Lam, U: Lam> Lam for Add<T, U> {
-    fn get(&self, context: &HashMap<Entity, &Variable>) -> f64 {
+    fn get(&self, context: &Vec<&mut (Entity, Mut<Variable>)>) -> f64 {
         self.0.get(context) + self.1.get(context)
     }
 
@@ -22,7 +22,7 @@ impl<T: Lam, U: Lam> Lam for Add<T, U> {
 
 pub struct Sub<T: Lam, U: Lam>(pub T, pub U);
 impl<T: Lam, U: Lam> Lam for Sub<T, U> {
-    fn get(&self, context: &HashMap<Entity, &Variable>) -> f64 {
+    fn get(&self, context: &Vec<&mut (Entity, Mut<Variable>)>) -> f64 {
         self.0.get(context) - self.1.get(context)
     }
 
@@ -35,7 +35,7 @@ impl<T: Lam, U: Lam> Lam for Sub<T, U> {
 
 pub struct Mul<T: Lam, U: Lam>(pub T, pub U);
 impl<T: Lam, U: Lam> Lam for Mul<T, U> {
-    fn get(&self, context: &HashMap<Entity, &Variable>) -> f64 {
+    fn get(&self, context: &Vec<&mut (Entity, Mut<Variable>)>) -> f64 {
         self.0.get(context) * self.1.get(context)
     }
 
@@ -48,8 +48,21 @@ impl<T: Lam, U: Lam> Lam for Mul<T, U> {
 
 pub struct Div<T: Lam, U: Lam>(pub T, pub U);
 impl<T: Lam, U: Lam> Lam for Div<T, U> {
-    fn get(&self, context: &HashMap<Entity, &Variable>) -> f64 {
+    fn get(&self, context: &Vec<&mut (Entity, Mut<Variable>)>) -> f64 {
         self.0.get(context) / self.1.get(context)
+    }
+
+    fn children(&self) -> Vec<Entity> {
+        let mut temp = self.0.children();
+        temp.append(&mut self.1.children().clone());
+        temp
+    }
+}
+
+pub struct Mod<T: Lam, U: Lam>(pub T, pub U);
+impl<T: Lam, U: Lam> Lam for Mod<T, U> {
+    fn get(&self, context: &Vec<&mut (Entity, Mut<Variable>)>) -> f64 {
+        self.0.get(context) % self.1.get(context)
     }
 
     fn children(&self) -> Vec<Entity> {
@@ -61,7 +74,7 @@ impl<T: Lam, U: Lam> Lam for Div<T, U> {
 
 pub struct Sin<T: Lam>(pub T);
 impl<T: Lam> Lam for Sin<T> {
-    fn get(&self, context: &HashMap<Entity, &Variable>) -> f64 {
+    fn get(&self, context: &Vec<&mut (Entity, Mut<Variable>)>) -> f64 {
         self.0.get(context).sin()
     }
 
@@ -72,7 +85,7 @@ impl<T: Lam> Lam for Sin<T> {
 
 pub struct Cos<T: Lam>(pub T);
 impl<T: Lam> Lam for Cos<T> {
-    fn get(&self, context: &HashMap<Entity, &Variable>) -> f64 {
+    fn get(&self, context: &Vec<&mut (Entity, Mut<Variable>)>) -> f64 {
         self.0.get(context).cos()
     }
 
@@ -83,7 +96,7 @@ impl<T: Lam> Lam for Cos<T> {
 
 pub struct Tan<T: Lam>(pub T);
 impl<T: Lam> Lam for Tan<T> {
-    fn get(&self, context: &HashMap<Entity, &Variable>) -> f64 {
+    fn get(&self, context: &Vec<&mut (Entity, Mut<Variable>)>) -> f64 {
         self.0.get(context).tan()
     }
 
@@ -94,8 +107,14 @@ impl<T: Lam> Lam for Tan<T> {
 
 pub struct Var(pub Entity);
 impl Lam for Var {
-    fn get(&self, context: &HashMap<Entity, &Variable>) -> f64 {
-        context.get(&self.0).unwrap().value()
+    fn get(&self, context: &Vec<&mut (Entity, Mut<Variable>)>) -> f64 {
+        context
+            .iter()
+            .filter(|w| w.0 == self.0)
+            .next()
+            .unwrap()
+            .1
+            .value()
     }
 
     fn children(&self) -> Vec<Entity> {
@@ -105,7 +124,7 @@ impl Lam for Var {
 
 pub struct Num(pub f64);
 impl Lam for Num {
-    fn get(&self, context: &HashMap<Entity, &Variable>) -> f64 {
+    fn get(&self, context: &Vec<&mut (Entity, Mut<Variable>)>) -> f64 {
         self.0
     }
 
