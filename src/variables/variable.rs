@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 use std::sync::Arc;
 
-use super::lambda::{Lam, Num};
+use super::{
+    group::Group,
+    lambda::{Lam, Num},
+};
 
 #[derive(Clone, Component)]
 pub struct Independent;
@@ -102,6 +105,7 @@ pub struct VariableBundle {
 
 pub fn dependent<T: Lam + 'static>(
     commands: &mut Commands,
+    group: &Group,
     name: &'static str,
     equation: T,
 ) -> Entity {
@@ -114,14 +118,21 @@ pub fn dependent<T: Lam + 'static>(
             equation: Arc::new(equation),
         })
         .insert(Dependent)
+        .insert(group.clone())
         .id()
 }
 
-pub fn independent(commands: &mut Commands, name: &'static str, value: f64) -> Entity {
+pub fn independent(
+    commands: &mut Commands,
+    group: &Group,
+    name: &'static str,
+    value: f64,
+) -> Entity {
     commands
         .spawn()
         .insert(Name::new(name))
         .insert(Variable::Independent { value })
         .insert(Independent)
+        .insert(group.clone())
         .id()
 }
