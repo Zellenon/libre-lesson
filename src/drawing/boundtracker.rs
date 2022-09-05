@@ -8,13 +8,15 @@ pub struct BoundTracker {
     target: Entity,
     pub target_value: f32,
     pub history: Vec<f32>,
+    pub max_length: usize,
 }
 impl BoundTracker {
-    pub fn new(target: Entity) -> Self {
+    pub fn new(target: Entity, max_length: usize) -> Self {
         Self {
             target,
             history: Vec::new(),
             target_value: 1.,
+            max_length,
         }
     }
 }
@@ -25,6 +27,9 @@ pub(crate) fn update_bound_trackers(mut tracker_query: Query<(&mut Path, &mut Bo
 
         let new_y = tracker.target_value;
         tracker.history.insert(0, new_y);
+        if tracker.history.len() > tracker.max_length {
+            tracker.history.pop();
+        }
 
         for (index, vertex) in tracker.history.iter().enumerate() {
             path_builder.line_to(Vec2::new(index as f32 * 2., *vertex as f32));
