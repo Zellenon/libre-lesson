@@ -9,6 +9,7 @@ edition = "2021"
 bevy = {version = "0.8.1"}
 bevy_egui = "0.16.0"
 bevy_prototype_lyon = "0.6.0"
+iyes_loopless = "0.7.1"
 num-traits = "0.2.15"
 strum = "0.24.1"
 strum_macros = "0.24.3"
