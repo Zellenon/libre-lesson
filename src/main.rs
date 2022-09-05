@@ -5,6 +5,7 @@ use bevy_prototype_lyon::{prelude::*, shapes::Circle};
 use drawing::DrawingPlugin;
 use page1::Page1Plugin;
 use page2::Page2Plugin;
+use page3::Page3Plugin;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use variables::debug::DebugPlugin;
@@ -29,6 +30,12 @@ pub(crate) enum Page {
 }
 
 #[derive(Component)]
+pub(crate) struct EquationText {
+    variables: Vec<Entity>,
+    template: &'static str,
+}
+
+#[derive(Component)]
 pub struct Time;
 
 fn main() {
@@ -50,6 +57,7 @@ fn main() {
         .add_state(Page::Simple)
         .add_plugin(Page1Plugin)
         .add_plugin(Page2Plugin)
+        .add_plugin(Page3Plugin)
         .add_system(time_update)
         .add_system(page_system)
         .add_system(page_enter)
@@ -80,31 +88,6 @@ fn page_enter(mut page_query: Query<(&Page, &mut Visibility)>, current_page: Res
             visibility.is_visible = page == current_page.current();
         }
     }
-}
-
-fn setup_gui(mut commands: Commands) {
-    commands
-        .spawn_bundle(NodeBundle {
-            style: Style {
-                flex_direction: FlexDirection::ColumnReverse,
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::SpaceEvenly,
-                size: Size::new(Val::Percent(100.), Val::Percent(100.)),
-                ..Default::default()
-            },
-            color: Color::rgb(0.3, 0.2, 0.0).into(),
-            // color: Color::NONE.into(),
-            ..Default::default()
-        })
-        .with_children(|w| {
-            let circle = Circle::default();
-
-            w.spawn_bundle(GeometryBuilder::build_as(
-                &circle,
-                DrawMode::Stroke(StrokeMode::new(Color::WHITE, 3.)),
-                Transform::default(),
-            ));
-        });
 }
 
 fn time_update(mut time_query: Query<&mut Variable, With<Time>>) {
