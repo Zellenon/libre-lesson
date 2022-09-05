@@ -37,19 +37,28 @@ impl Plugin for Page2Plugin {
     }
 }
 
+macro_rules! build {
+    ($name: expr) => {
+        GeometryBuilder::build_as(
+            &$name,
+            DrawMode::Stroke(StrokeMode::new(Color::WHITE, 2.0)),
+            Transform::default(),
+        )
+    };
+}
 fn page2_setup(mut commands: Commands) {
     let global = Group(GLOBAL);
     let upper = Group(UPPER);
     let lower = Group(LOWER);
     let time = independent(&mut commands, &global, "time", 0.);
+    let point_rad = independent(&mut commands, &global, "point_rad", 10.);
+    let zero = independent(&mut commands, &global, "0", 0.);
     let mut frame_maker = |offset: f64, group: &Group| {
         let phase = independent(&mut commands, group, "phase", 0.);
         let freq = independent(&mut commands, group, "freq", 2.);
         let amp = independent(&mut commands, group, "amp", 30.);
         let circle_x = independent(&mut commands, group, "circle_x", -200.);
         let shift_y = independent(&mut commands, group, "shift_y", offset);
-        let point_rad = independent(&mut commands, group, "point_rad", 10.);
-        let zero = independent(&mut commands, group, "0", 0.);
         let theta = dependent(
             &mut commands,
             group,
@@ -89,11 +98,7 @@ fn page2_setup(mut commands: Commands) {
         let circle = Circle::default();
 
         commands
-            .spawn_bundle(GeometryBuilder::build_as(
-                &circle,
-                DrawMode::Stroke(StrokeMode::new(Color::WHITE, 3.)),
-                Transform::default(),
-            ))
+            .spawn_bundle(build!(circle))
             .insert(Page::Combination)
             .insert(BoundCircle::new(amp))
             .insert(BoundPoint::new(circle_x, shift_y));
@@ -112,28 +117,20 @@ fn page2_setup(mut commands: Commands) {
         let line = path_builder.build();
 
         commands
-            .spawn_bundle(GeometryBuilder::build_as(
-                &line,
-                DrawMode::Stroke(StrokeMode::new(Color::WHITE, 3.0)),
-                Transform::default(),
-            ))
+            .spawn_bundle(build!(line))
             .insert(Page::Combination)
             .insert(BoundTracker::new(circle_sin, 300));
 
         commands
-            .spawn_bundle(GeometryBuilder::build_as(
-                &line,
-                DrawMode::Stroke(StrokeMode::new(Color::WHITE, 2.0)),
-                Transform::default(),
-            ))
+            .spawn_bundle(build!(line))
             .insert(Page::Combination)
             .insert(BoundLine::new(circle_cos, circle_sin, zero, circle_sin));
 
-        return sin_theta;
+        return (amp, cos_theta, sin_theta);
     };
 
-    let upper_sin = frame_maker(200., &upper);
-    let lower_sin = frame_maker(0., &lower);
+    let (upper_amp, upper_cos, upper_sin) = frame_maker(200., &upper);
+    let (lower_amp, lower_cos, lower_sin) = frame_maker(0., &lower);
 
     let line = PathBuilder::new().build();
     let sum = dependent(
@@ -143,13 +140,62 @@ fn page2_setup(mut commands: Commands) {
         Add(Add(Var(upper_sin), Var(lower_sin)), Num(-200.)),
     );
     commands
+        .spawn_bundle(build!(line))
+        .insert(Page::Combination)
+        .insert(BoundTracker::new(sum, 300));
+
+    let circle = Circle::default();
+
+    let sum_center = independent(&mut commands, &global, "lower center", -200.);
+    commands
+        .spawn_bundle(build!(circle))
+        .insert(Page::Combination)
+        .insert(BoundCircle::new(lower_amp))
+        .insert(BoundPoint::new(sum_center, sum_center));
+
+    let sum_cos = dependent(
+        &mut commands,
+        &global,
+        "sum cos",
+        Add(Num(-200.), Var(lower_cos)),
+    );
+    let sum_sin = dependent(
+        &mut commands,
+        &global,
+        "sum sin",
+        Add(Num(-200.), Var(lower_sin)),
+    );
+    commands
+        .spawn_bundle(build!(circle))
+        .insert(Page::Combination)
+        .insert(BoundCircle::new(upper_amp))
+        .insert(BoundPoint::new(sum_cos, sum_sin));
+
+    let sum_point_x = dependent(
+        &mut commands,
+        &global,
+        "sum_point_x",
+        Add(Var(sum_cos), Var(upper_cos)),
+    );
+    let sum_point_y = dependent(
+        &mut commands,
+        &global,
+        "sum_point_y",
+        Add(Var(sum_sin), Var(upper_sin)),
+    );
+    commands
         .spawn_bundle(GeometryBuilder::build_as(
-            &line,
-            DrawMode::Stroke(StrokeMode::new(Color::WHITE, 2.0)),
+            &circle,
+            DrawMode::Stroke(StrokeMode::new(Color::RED, 3.)),
             Transform::default(),
         ))
         .insert(Page::Combination)
-        .insert(BoundTracker::new(sum, 300));
+        .insert(BoundCircle::new(point_rad))
+        .insert(BoundPoint::new(sum_point_x, sum_point_y));
+    commands
+        .spawn_bundle(build!(line))
+        .insert(Page::Combination)
+        .insert(BoundLine::new(sum_point_x, sum_point_y, zero, sum));
 }
 
 #[derive(Debug)]

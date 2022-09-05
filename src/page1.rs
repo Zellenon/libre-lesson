@@ -36,6 +36,16 @@ impl Plugin for Page1Plugin {
     }
 }
 
+macro_rules! build {
+    ($name: expr) => {
+        GeometryBuilder::build_as(
+            &$name,
+            DrawMode::Stroke(StrokeMode::new(Color::WHITE, 2.0)),
+            Transform::default(),
+        )
+    };
+}
+
 fn page1_setup(mut commands: Commands) {
     let global = Group(GLOBAL);
     let pagegroup = Group(PAGE1);
@@ -79,11 +89,7 @@ fn page1_setup(mut commands: Commands) {
     let circle = Circle::default();
 
     commands
-        .spawn_bundle(GeometryBuilder::build_as(
-            &circle,
-            DrawMode::Stroke(StrokeMode::new(Color::WHITE, 3.)),
-            Transform::default(),
-        ))
+        .spawn_bundle(build!(circle))
         .insert(Page::Simple)
         .insert(BoundCircle::new(amp))
         .insert(BoundPoint::new(circle_x, zero));
@@ -102,20 +108,12 @@ fn page1_setup(mut commands: Commands) {
     let line = path_builder.build();
 
     commands
-        .spawn_bundle(GeometryBuilder::build_as(
-            &line,
-            DrawMode::Stroke(StrokeMode::new(Color::WHITE, 3.0)),
-            Transform::default(),
-        ))
+        .spawn_bundle(build!(line))
         .insert(Page::Simple)
         .insert(BoundTracker::new(sin_theta, 300));
 
     commands
-        .spawn_bundle(GeometryBuilder::build_as(
-            &line,
-            DrawMode::Stroke(StrokeMode::new(Color::WHITE, 2.0)),
-            Transform::default(),
-        ))
+        .spawn_bundle(build!(line))
         .insert(Page::Simple)
         .insert(BoundLine::new(circle_cos, sin_theta, zero, sin_theta));
 }
