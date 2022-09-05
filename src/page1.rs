@@ -146,11 +146,11 @@ fn update_page1_inspector(
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
                     ui.label("Frequency");
-                    ui.add(egui::Slider::new(&mut inspector.freq, 1.0..=30.));
+                    ui.add(egui::Slider::new(&mut inspector.freq, 1.0..=30.).integer());
                 });
                 ui.horizontal(|ui| {
                     ui.label("Amplitude");
-                    ui.add(egui::Slider::new(&mut inspector.amp, 0.5..=100.));
+                    ui.add(egui::Slider::new(&mut inspector.amp, 0.5..=100.).integer());
                 });
                 ui.horizontal(|ui| {
                     ui.label("Phase");

@@ -232,11 +232,11 @@ fn update_page2_inspector(
             .show(ctx, |ui| {
                 ui.horizontal(|ui| {
                     ui.label("Frequency");
-                    ui.add(egui::Slider::new(&mut inspector.freq1, 1.0..=30.));
+                    ui.add(egui::Slider::new(&mut inspector.freq1, 1.0..=30.).integer());
                 });
                 ui.horizontal(|ui| {
                     ui.label("Amplitude");
-                    ui.add(egui::Slider::new(&mut inspector.amp1, 0.5..=100.));
+                    ui.add(egui::Slider::new(&mut inspector.amp1, 0.5..=100.).integer());
                 });
                 ui.horizontal(|ui| {
                     ui.label("Phase");
@@ -245,11 +245,11 @@ fn update_page2_inspector(
                 ui.separator();
                 ui.horizontal(|ui| {
                     ui.label("Frequency");
-                    ui.add(egui::Slider::new(&mut inspector.freq2, 1.0..=30.));
+                    ui.add(egui::Slider::new(&mut inspector.freq2, 1.0..=30.).integer());
                 });
                 ui.horizontal(|ui| {
                     ui.label("Amplitude");
-                    ui.add(egui::Slider::new(&mut inspector.amp2, 0.5..=100.));
+                    ui.add(egui::Slider::new(&mut inspector.amp2, 0.5..=100.).integer());
                 });
                 ui.horizontal(|ui| {
                     ui.label("Phase");
