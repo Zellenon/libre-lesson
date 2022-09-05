@@ -77,7 +77,7 @@ fn main() {
         // .add_system(circle_update)
         .insert_resource(SineInspector::default())
         .add_plugin(EguiPlugin)
-        .add_plugin(DrawingPlugin)
+        .add_plugin(DrawingPlugin { num_pages: 4 })
         .add_plugin(VariablePlugin)
         .add_plugin(DebugPlugin {
             variables: false,
@@ -235,7 +235,7 @@ fn update_sine_inspector(
     let ctx = &mut egui_context.ctx_mut();
 
     egui::Window::new("Sine Inspector")
-        .fixed_pos([50.0, 100.0])
+        .fixed_pos([30.0, 100.0])
         .show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.label("Frequency");
@@ -249,6 +249,7 @@ fn update_sine_inspector(
                 ui.label("Phase");
                 ui.add(egui::Slider::new(&mut inspector.phase1, 0. ..=(PI * 2.)));
             });
+            ui.separator();
             ui.horizontal(|ui| {
                 ui.label("Frequency");
                 ui.add(egui::Slider::new(&mut inspector.freq2, 1.0..=30.));
