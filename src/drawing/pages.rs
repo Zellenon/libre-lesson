@@ -35,7 +35,7 @@ pub(crate) fn camera_controls(
     }
     if movement != 0 {
         page.current_page += movement;
-        page.current_page = page.current_page.max(0).min(page.num_pages as isize - 1);
+        page.current_page = page.current_page.max(1).min(page.num_pages as isize);
 
         for mut target in camera_query.iter_mut() {
             target.0 = page.current_page as f32 * WINDOW_WIDTH;

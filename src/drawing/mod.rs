@@ -6,13 +6,13 @@ use self::boundcircle::{update_bound_circles, BoundCircle};
 use self::boundline::{update_bound_lines, BoundLine};
 use self::boundpoint::BoundPoint;
 use self::boundtracker::{update_bound_trackers, BoundTracker};
-use self::cameras::{camera_controls, camera_setup, move_camera, Page};
+use self::pages::{camera_controls, camera_setup, move_camera, Page};
 
 pub mod boundcircle;
 pub mod boundline;
 pub mod boundpoint;
 pub mod boundtracker;
-pub mod cameras;
+pub mod pages;
 
 pub struct DrawingPlugin {
     pub num_pages: usize,
@@ -21,13 +21,12 @@ pub struct DrawingPlugin {
 impl Plugin for DrawingPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(Page {
-            current_page: 0,
+            current_page: 1,
             num_pages: self.num_pages,
         });
-        // app.add_startup_system(drawing_setup);
         app.add_startup_system(camera_setup);
         app.add_system(camera_controls);
-        app.add_system(move_camera);
+        // app.add_system(move_camera);
 
         app.add_system_set(
             SystemSet::new()
