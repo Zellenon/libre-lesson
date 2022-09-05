@@ -18,13 +18,22 @@ impl Plugin for DrawingPlugin {
     fn build(&self, app: &mut App) {
         app.add_startup_system(drawing_setup);
 
-        app.add_system(update_bindings::<BoundLine>.before(update_bound_lines));
-        app.add_system(update_bound_lines);
-        app.add_system(update_bindings::<BoundPoint>.before(update_bound_circles));
-        app.add_system(update_bindings::<BoundCircle>.before(update_bound_circles));
-        app.add_system(update_bound_circles);
-        app.add_system(update_bindings::<BoundTracker>.before(update_bound_trackers));
-        app.add_system(update_bound_trackers);
+        app.add_system_set(
+            SystemSet::new()
+                .label("drawing")
+                .after("variacle_recalculation")
+                .with_system(update_bindings::<BoundLine>.label("bind_lines"))
+                .with_system(update_bound_lines.after("bind_lines"))
+                .with_system(update_bindings::<BoundPoint>.label("bind_points"))
+                .with_system(update_bindings::<BoundCircle>.label("bind_circles"))
+                .with_system(
+                    update_bound_circles
+                        .after("bind_points")
+                        .after("bind_circles"),
+                )
+                .with_system(update_bindings::<BoundTracker>.label("bind_trackers"))
+                .with_system(update_bound_trackers.after("bind_trackers")),
+        );
     }
 }
 

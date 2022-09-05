@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 
-pub use self::group::VariableGroup;
 pub use self::variable::{Dependent, Independent, Variable};
 
 pub mod binding;
@@ -13,6 +12,12 @@ pub struct VariablePlugin;
 
 impl Plugin for VariablePlugin {
     fn build(&self, app: &mut App) {
+        app.add_system_set(
+            SystemSet::new()
+                .label("variable_recalculation")
+                .with_system(devaluate_variables.label("devaluate"))
+                .with_system(evaluate_variables.after("devaluate")),
+        );
         app.add_system(devaluate_variables);
         app.add_system(evaluate_variables.after(devaluate_variables));
     }
