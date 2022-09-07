@@ -3,7 +3,7 @@ use std::f64::consts::PI;
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext};
 use bevy_prototype_lyon::{prelude::*, shapes::Circle};
-use bevy_turborand::RngPlugin;
+use bevy_turborand::{DelegatedRng, GlobalRng, RngPlugin};
 
 use crate::drawing::boundcircle::BoundCircle;
 use crate::drawing::boundline::BoundLine;
@@ -34,6 +34,7 @@ impl Plugin for Page3Plugin {
             .add_system(update_page3_inspector)
             .add_system(update_page3_variables_from_gui)
             .add_system(game_check)
+            .add_system(new_game)
             .add_startup_system(page3_setup)
             .add_startup_system(page3_invisible_setup)
             // .add_startup_system(setup_gui)
@@ -261,6 +262,7 @@ impl Default for Page3Inspector {
         }
     }
 }
+
 fn update_page3_inspector(
     mut inspector: ResMut<Page3Inspector>,
     game: Res<Page3GameState>,
@@ -305,29 +307,34 @@ fn new_game(
         Query<(&Group, &mut Variable), With<Amp>>,
         Query<(&Group, &mut Variable), With<Phase>>,
     )>,
+    mut rng: ResMut<GlobalRng>,
+    mut events: EventReader<NewGameEvent>,
 ) {
-    println!("New Game");
-    // vars.p0()
-    //     .iter_mut()
-    //     .filter(|w| w.0 .0 == KNOWN)
-    //     .next()
-    //     .unwrap()
-    //     .1
-    //     .set_value(inspector.freq);
-    // vars.p1()
-    //     .iter_mut()
-    //     .filter(|w| w.0 .0 == KNOWN)
-    //     .next()
-    //     .unwrap()
-    //     .1
-    //     .set_value(inspector.amp);
-    // vars.p2()
-    //     .iter_mut()
-    //     .filter(|w| w.0 .0 == KNOWN)
-    //     .next()
-    //     .unwrap()
-    //     .1
-    //     .set_value(inspector.phase);
+    for _event in events.iter() {
+        println!("New Game!");
+        vars.p0()
+            .iter_mut()
+            .filter(|w| w.0 .0 == UNKNOWN)
+            .next()
+            .unwrap()
+            .1
+            .set_value(rng.i16(1..=20) as f64);
+        vars.p1()
+            .iter_mut()
+            .filter(|w| w.0 .0 == UNKNOWN)
+            .next()
+            .unwrap()
+            .1
+            .set_value(rng.i16(1..=100) as f64);
+        vars.p2()
+            .iter_mut()
+            .filter(|w| w.0 .0 == UNKNOWN)
+            .next()
+            .unwrap()
+            .1
+            .set_value(rng.i16(1..62) as f64 / 10.);
+        game_state.win = false;
+    }
 }
 
 fn update_page3_variables_from_gui(
@@ -415,8 +422,8 @@ fn game_check(
         let game_freq = get(&mut vars, UNKNOWN, 0);
         let game_amp = get(&mut vars, UNKNOWN, 1);
         let game_phase = get(&mut vars, UNKNOWN, 2);
-        game_state.win = (user_freq - game_freq).abs() < 0.1
-            && (user_amp - game_amp).abs() < 0.1
+        game_state.win = (1. - user_freq / game_freq).abs() < 0.1
+            && (1. - user_amp / game_amp).abs() < 0.1
             && (user_phase - game_phase).abs() < 0.11
     }
 }
