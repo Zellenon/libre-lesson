@@ -31,7 +31,6 @@ pub fn devaluate_variables(mut var_query: Query<&mut Variable>) {
 
 pub fn evaluate_variables(mut var_query: Query<(Entity, &mut Variable)>) {
     while var_query.iter().any(|w| !w.1.recalculated()) {
-        // let mut next_batch: Vec<Entity, Mut<Variable>)> = Vec::new();
         let mut vars: Vec<_> = var_query.iter_mut().collect();
         let (finished, mut unfinished): (_, Vec<_>) =
             vars.iter_mut().partition(|x| x.1.recalculated());

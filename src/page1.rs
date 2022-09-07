@@ -14,7 +14,7 @@ use crate::variables::{
     variable::{dependent, independent},
     Variable,
 };
-use crate::{Page, Time, GLOBAL};
+use crate::{EquationText, Page, Time, GLOBAL};
 const PAGE1: usize = 1;
 
 #[derive(Component)]
@@ -46,7 +46,7 @@ macro_rules! build {
     };
 }
 
-fn page1_setup(mut commands: Commands) {
+fn page1_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let global = Group(GLOBAL);
     let pagegroup = Group(PAGE1);
     let time = independent(&mut commands, &global, "time", 0.);
@@ -72,7 +72,7 @@ fn page1_setup(mut commands: Commands) {
         &mut commands,
         &pagegroup,
         "sin(theta)",
-        Mul(Var(amp), Sin(Var(theta))),
+        Mul(Var(amp), Sin(Var(theta))), // sin(theta) * amp
     );
     let circle_cos = dependent(
         &mut commands,
@@ -116,6 +116,46 @@ fn page1_setup(mut commands: Commands) {
         .spawn_bundle(build!(line))
         .insert(Page::Simple)
         .insert(BoundLine::new(circle_cos, sin_theta, zero, sin_theta));
+
+    commands
+        .spawn_bundle(NodeBundle {
+            style: Style {
+                flex_direction: FlexDirection::ColumnReverse,
+                align_items: AlignItems::Center,
+                justify_content: JustifyContent::SpaceEvenly,
+                size: Size::new(Val::Percent(100.), Val::Percent(10.)),
+                padding: UiRect {
+                    left: Val::Px(25.),
+                    ..default()
+                },
+                ..default()
+            },
+            color: Color::rgb(0.6, 0.6, 0.6).into(),
+            ..Default::default()
+        })
+        .insert(Page::Simple)
+        .with_children(|w| {
+            w.spawn_bundle(
+                TextBundle::from_section(
+                    "placeholder text",
+                    TextStyle {
+                        font: asset_server.load("FiraSans-Bold.ttf"),
+                        font_size: 40.0,
+                        color: Color::WHITE,
+                    },
+                )
+                .with_text_alignment(TextAlignment::TOP_LEFT)
+                .with_style(Style {
+                    align_self: AlignSelf::FlexStart,
+                    ..default()
+                }),
+            )
+            .insert(Page::Simple)
+            .insert(EquationText {
+                variables: vec![amp, freq, phase],
+                template: "$sin($x + $)",
+            });
+        });
 }
 
 #[derive(Debug)]

@@ -1,9 +1,9 @@
 use std::f64::consts::PI;
 
 use bevy::prelude::*;
-use bevy::ui::widget::text_system;
 use bevy_egui::{egui, EguiContext};
 use bevy_prototype_lyon::{prelude::*, shapes::Circle};
+use bevy_turborand::RngPlugin;
 
 use crate::drawing::boundcircle::BoundCircle;
 use crate::drawing::boundline::BoundLine;
@@ -30,12 +30,15 @@ pub struct Page3Plugin;
 
 impl Plugin for Page3Plugin {
     fn build(&self, app: &mut App) {
-        app.add_system(update_page3_inspector)
+        app.add_plugin(RngPlugin::default())
+            .add_system(update_page3_inspector)
             .add_system(update_page3_variables_from_gui)
+            .add_system(game_check)
             .add_startup_system(page3_setup)
             .add_startup_system(page3_invisible_setup)
-            .add_system(update_text)
             // .add_startup_system(setup_gui)
+            .add_event::<NewGameEvent>()
+            .insert_resource(Page3GameState { win: false })
             .insert_resource(Page3Inspector::default());
     }
 }
@@ -139,17 +142,9 @@ fn page3_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         })
         .insert(Page::Game)
         .with_children(|w| {
-            let circle = Circle::default();
-
-            // w.spawn_bundle(GeometryBuilder::build_as(
-            //     &circle,
-            //     DrawMode::Stroke(StrokeMode::new(Color::WHITE, 3.)),
-            //     Transform::default(),
-            // ));
-
             w.spawn_bundle(
                 TextBundle::from_section(
-                    "hello bevy!",
+                    "placeholder text",
                     TextStyle {
                         font: asset_server.load("FiraSans-Bold.ttf"),
                         font_size: 40.0,
@@ -174,7 +169,7 @@ fn page3_invisible_setup(mut commands: Commands) {
     let global = Group(GLOBAL);
     let pagegroup = Group(UNKNOWN);
     let time = independent(&mut commands, &global, "time", 0.);
-    let phase = independent(&mut commands, &pagegroup, "phase", 20.);
+    let phase = independent(&mut commands, &pagegroup, "phase", 1.2);
     let freq = independent(&mut commands, &pagegroup, "freq", 3.);
     let amp = independent(&mut commands, &pagegroup, "amp", 45.);
     let circle_x = independent(&mut commands, &pagegroup, "circle_x", -200.);
@@ -250,6 +245,13 @@ struct Page3Inspector {
     phase: f64,
 }
 
+#[derive(Debug)]
+struct Page3GameState {
+    win: bool,
+}
+
+struct NewGameEvent;
+
 impl Default for Page3Inspector {
     fn default() -> Self {
         Self {
@@ -261,8 +263,10 @@ impl Default for Page3Inspector {
 }
 fn update_page3_inspector(
     mut inspector: ResMut<Page3Inspector>,
+    game: Res<Page3GameState>,
     mut egui_context: ResMut<EguiContext>,
     page: Res<State<Page>>,
+    mut events: EventWriter<NewGameEvent>,
 ) {
     let ctx = &mut egui_context.ctx_mut();
     if *page.current() == Page::Game {
@@ -281,8 +285,49 @@ fn update_page3_inspector(
                     ui.label("Phase");
                     ui.add(egui::Slider::new(&mut inspector.phase, 0. ..=(PI * 2.)));
                 });
+                if game.win {
+                    ui.horizontal(|ui| {
+                        // ui.add(egui::Button::new("New Game"));
+                        if ui.button("New Game").clicked() {
+                            events.send(NewGameEvent);
+                        }
+                    });
+                } else {
+                }
             });
     }
+}
+
+fn new_game(
+    mut game_state: ResMut<Page3GameState>,
+    mut vars: ParamSet<(
+        Query<(&Group, &mut Variable), With<Freq>>,
+        Query<(&Group, &mut Variable), With<Amp>>,
+        Query<(&Group, &mut Variable), With<Phase>>,
+    )>,
+) {
+    println!("New Game");
+    // vars.p0()
+    //     .iter_mut()
+    //     .filter(|w| w.0 .0 == KNOWN)
+    //     .next()
+    //     .unwrap()
+    //     .1
+    //     .set_value(inspector.freq);
+    // vars.p1()
+    //     .iter_mut()
+    //     .filter(|w| w.0 .0 == KNOWN)
+    //     .next()
+    //     .unwrap()
+    //     .1
+    //     .set_value(inspector.amp);
+    // vars.p2()
+    //     .iter_mut()
+    //     .filter(|w| w.0 .0 == KNOWN)
+    //     .next()
+    //     .unwrap()
+    //     .1
+    //     .set_value(inspector.phase);
 }
 
 fn update_page3_variables_from_gui(
@@ -320,23 +365,58 @@ fn update_page3_variables_from_gui(
     }
 }
 
-fn update_text(
-    mut text_query: Query<(&mut Text, &EquationText), With<Page>>,
-    var_query: Query<&Variable>,
+fn game_check(
+    mut game_state: ResMut<Page3GameState>,
+    mut vars: ParamSet<(
+        Query<(&Group, &mut Variable), With<Freq>>,
+        Query<(&Group, &mut Variable), With<Amp>>,
+        Query<(&Group, &mut Variable), With<Phase>>,
+    )>,
+    page: Res<State<Page>>,
 ) {
-    for (mut text, equation) in text_query.iter_mut() {
-        let mut variables: Vec<_> = equation
-            .variables
-            .iter()
-            .map(|w| format!("{}", var_query.get(*w).unwrap().value()))
-            .collect();
-        variables.insert(0, "".into());
-
-        let pairs = variables.iter().zip(equation.template.split("$"));
-        let result: String = pairs
-            .map(|(a, b)| format!("{}{}", a, b))
-            .collect::<Vec<_>>()
-            .join("");
-        text.sections[0].value = result;
+    if *page.current() == Page::Game {
+        let get = |vars: &mut ParamSet<(
+            Query<(&Group, &mut Variable), With<Freq>>,
+            Query<(&Group, &mut Variable), With<Amp>>,
+            Query<(&Group, &mut Variable), With<Phase>>,
+        )>,
+                   group: usize,
+                   var: usize| {
+            match var {
+                0 => vars
+                    .p0()
+                    .iter()
+                    .filter(|w| w.0 .0 == group)
+                    .next()
+                    .unwrap()
+                    .1
+                    .value(),
+                1 => vars
+                    .p1()
+                    .iter()
+                    .filter(|w| w.0 .0 == group)
+                    .next()
+                    .unwrap()
+                    .1
+                    .value(),
+                _ => vars
+                    .p2()
+                    .iter()
+                    .filter(|w| w.0 .0 == group)
+                    .next()
+                    .unwrap()
+                    .1
+                    .value(),
+            }
+        };
+        let user_freq = get(&mut vars, KNOWN, 0);
+        let user_amp = get(&mut vars, KNOWN, 1);
+        let user_phase = get(&mut vars, KNOWN, 2);
+        let game_freq = get(&mut vars, UNKNOWN, 0);
+        let game_amp = get(&mut vars, UNKNOWN, 1);
+        let game_phase = get(&mut vars, UNKNOWN, 2);
+        game_state.win = (user_freq - game_freq).abs() < 0.1
+            && (user_amp - game_amp).abs() < 0.1
+            && (user_phase - game_phase).abs() < 0.11
     }
 }
