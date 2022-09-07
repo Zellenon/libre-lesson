@@ -132,3 +132,34 @@ impl Lam for Num {
         Vec::new()
     }
 }
+
+pub struct Sum(pub Vec<Entity>);
+impl Lam for Sum {
+    fn get(&self, context: &Vec<&mut (Entity, Mut<Variable>)>) -> f64 {
+        0. + self
+            .0
+            .iter()
+            .map(|e| {
+                context
+                    .iter()
+                    .filter(|w| w.0 == *e)
+                    .next()
+                    .unwrap()
+                    .1
+                    .value()
+            })
+            .sum::<f64>()
+    }
+
+    fn children(&self) -> Vec<Entity> {
+        self.0.clone()
+    }
+}
+impl Sum {
+    pub fn add(&mut self, new_entry: Entity) {
+        self.0.push(new_entry);
+    }
+    pub fn remove(&mut self, entity: Entity) {
+        self.0.retain(|&w| w != entity);
+    }
+}

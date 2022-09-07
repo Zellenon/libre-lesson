@@ -6,6 +6,7 @@ use drawing::DrawingPlugin;
 use page1::Page1Plugin;
 use page2::Page2Plugin;
 use page3::Page3Plugin;
+use page4::Page4Plugin;
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 use variables::debug::DebugPlugin;
@@ -26,7 +27,7 @@ pub(crate) enum Page {
     Simple,
     Combination,
     Game,
-    Unnamed,
+    Fourier,
 }
 
 #[derive(Component)]
@@ -58,6 +59,7 @@ fn main() {
         .add_plugin(Page1Plugin)
         .add_plugin(Page2Plugin)
         .add_plugin(Page3Plugin)
+        .add_plugin(Page4Plugin)
         .add_system(time_update)
         .add_system(page_system)
         .add_system(page_enter)

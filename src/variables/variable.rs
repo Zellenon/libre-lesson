@@ -80,6 +80,17 @@ impl Variable {
         }
     }
 
+    pub fn equation_mut(&mut self) -> Option<&mut Arc<dyn Lam>> {
+        match self {
+            Variable::Independent { value } => None,
+            Variable::Dependent {
+                value: _,
+                recalculated: _,
+                equation,
+            } => Option::Some(equation),
+        }
+    }
+
     pub fn children(&self) -> Vec<Entity> {
         match self {
             Variable::Independent { value: _ } => Vec::new(),
