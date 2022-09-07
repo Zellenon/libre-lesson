@@ -61,6 +61,7 @@ fn main() {
         .add_system(time_update)
         .add_system(page_system)
         .add_system(page_enter)
+        .add_system(update_text)
         .run();
 }
 
@@ -95,5 +96,26 @@ fn time_update(mut time_query: Query<&mut Variable, With<Time>>) {
     for mut var in time_query.iter_mut() {
         let old_value = (*var).value();
         var.set_value(old_value + delta);
+    }
+}
+
+pub(crate) fn update_text(
+    mut text_query: Query<(&mut Text, &EquationText), With<Page>>,
+    var_query: Query<&Variable>,
+) {
+    for (mut text, equation) in text_query.iter_mut() {
+        let mut variables: Vec<_> = equation
+            .variables
+            .iter()
+            .map(|w| format!("{}", var_query.get(*w).unwrap().value()))
+            .collect();
+        variables.insert(0, "".into());
+
+        let pairs = variables.iter().zip(equation.template.split("$"));
+        let result: String = pairs
+            .map(|(a, b)| format!("{}{}", a, b))
+            .collect::<Vec<_>>()
+            .join("");
+        text.sections[0].value = result;
     }
 }
