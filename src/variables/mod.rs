@@ -34,6 +34,23 @@ pub fn evaluate_variables(mut var_query: Query<(Entity, &mut Variable)>) {
         let mut vars: Vec<_> = var_query.iter_mut().collect();
         let (finished, mut unfinished): (_, Vec<_>) =
             vars.iter_mut().partition(|x| x.1.recalculated());
+        if unfinished
+            .iter_mut()
+            .filter(|w| {
+                let needed = (*w.1).equation().children();
+                needed.iter().all(|v| {
+                    finished
+                        .iter()
+                        .map(|u| u.0)
+                        .collect::<Vec<Entity>>()
+                        .contains(&v)
+                })
+            })
+            .count()
+            == 0
+        {
+            return;
+        }
         for var in unfinished.iter_mut().filter(|w| {
             let needed = (*w.1).equation().children();
             needed.iter().all(|v| {
