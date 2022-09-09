@@ -5,9 +5,6 @@ use bevy_egui::{egui, EguiContext};
 use bevy_prototype_lyon::{prelude::*, shapes::Circle};
 use bevy_turborand::{DelegatedRng, GlobalRng};
 
-use crate::drawing::boundcircle::BoundCircle;
-use crate::drawing::boundline::BoundLine;
-use crate::drawing::boundpoint::BoundPoint;
 use crate::drawing::boundtracker::BoundTracker;
 use crate::variables::lambda::*;
 use crate::variables::{
@@ -18,7 +15,6 @@ use crate::variables::{
 use crate::{Page, Time, GLOBAL};
 
 const SUM: usize = 7;
-const PROC: usize = 8;
 
 #[derive(Component)]
 struct Freq;
@@ -34,7 +30,7 @@ struct SinOutput;
 #[derive(Component)]
 struct Offset;
 struct NewRowEvent;
-struct DeleteRowEvent(Entity);
+struct DeleteRowEvent(usize);
 
 pub struct Page4Plugin;
 
@@ -43,6 +39,7 @@ impl Plugin for Page4Plugin {
         app.add_system(update_page4_inspector)
             .add_startup_system(page4_setup)
             .add_system(new_row)
+            .add_system(delete_row)
             .add_system(update_sum.after("variable_recalculation").before("drawing"))
             .add_event::<NewRowEvent>()
             .add_event::<DeleteRowEvent>()
@@ -62,8 +59,6 @@ macro_rules! build {
 
 fn page4_setup(mut commands: Commands) {
     let global = Group(GLOBAL);
-    let sum_group = Group(SUM);
-    let procedural_group = Group(PROC);
     // let time = independent(&mut commands, &global, "time", 0.);
 
     let line = PathBuilder::new().build();
@@ -78,12 +73,12 @@ fn page4_setup(mut commands: Commands) {
     commands
         .spawn_bundle(build!(line))
         .insert(Page::Fourier)
-        .insert(BoundTracker::new(sum_offset, 250));
+        .insert(BoundTracker::new(sum_offset, 300));
 }
 
 #[derive(Debug)]
 struct Page4Inspector {
-    entities: Vec<Entity>,
+    entities: Vec<usize>,
 }
 
 impl Default for Page4Inspector {
@@ -95,7 +90,8 @@ fn update_page4_inspector(
     mut inspector: ResMut<Page4Inspector>,
     mut egui_context: ResMut<EguiContext>,
     page: Res<State<Page>>,
-    mut events: EventWriter<NewRowEvent>,
+    mut creation_events: EventWriter<NewRowEvent>,
+    mut deletion_events: EventWriter<DeleteRowEvent>,
 ) {
     let ctx = &mut egui_context.ctx_mut();
     if *page.current() == Page::Fourier {
@@ -105,9 +101,14 @@ fn update_page4_inspector(
                 ui.horizontal(|ui| {
                     ui.label("Todo");
                     if ui.button("Press").clicked() {
-                        events.send(NewRowEvent);
+                        creation_events.send(NewRowEvent);
                     }
                 });
+                for ID in inspector.entities.iter() {
+                    if ui.button("Delete").clicked() {
+                        deletion_events.send(DeleteRowEvent(*ID));
+                    }
+                }
             });
     }
 }
@@ -119,10 +120,16 @@ fn new_row(
         Query<&Variable, With<Offset>>,
         Query<Entity, With<Time>>,
     )>,
+    groups: Query<&Group>,
     mut events: EventReader<NewRowEvent>,
     mut rng: ResMut<GlobalRng>,
+    mut inspector: ResMut<Page4Inspector>,
 ) {
-    for event in events.iter() {
+    let mut groupID = 8;
+    while groups.iter().any(|w| w.0 == groupID) {
+        groupID += 1;
+    }
+    for _event in events.iter() {
         let mut offset = 200.;
         while queries
             .p1()
@@ -133,11 +140,10 @@ fn new_row(
         {
             offset -= 75.;
         }
-        let group = &Group(PROC);
-        let phase = independent(&mut commands, group, "phase", 0.);
-        let freq = independent(&mut commands, group, "freq", rng.i16(1..=30) as f64 / 2.);
+        let group = &Group(groupID);
+        let phase = independent(&mut commands, group, "phase", rng.i16(1..=200) as f64 / 10.);
+        let freq = independent(&mut commands, group, "freq", rng.i16(1..=90) as f64 / 3.);
         let amp = independent(&mut commands, group, "amp", rng.i16(5..=25) as f64);
-        let circle_x = independent(&mut commands, group, "circle_x", -200.);
         let shift_y = independent(&mut commands, group, "shift_y", offset);
         let theta = dependent(
             &mut commands,
@@ -151,23 +157,11 @@ fn new_row(
                 Num(2. * PI),
             ),
         );
-        let cos_theta = dependent(
-            &mut commands,
-            group,
-            "cos(theta)",
-            Mul(Var(amp), Cos(Var(theta))),
-        );
         let sin_theta = dependent(
             &mut commands,
             group,
             "sin(theta)",
             Mul(Var(amp), Sin(Var(theta))),
-        );
-        let circle_cos = dependent(
-            &mut commands,
-            group,
-            "circle_cos",
-            Add(Var(circle_x), Var(cos_theta)),
         );
         let circle_sin = dependent(
             &mut commands,
@@ -183,40 +177,31 @@ fn new_row(
         commands.entity(sin_theta).insert(SinOutput);
         commands.entity(shift_y).insert(Offset);
 
-        // let circle = Circle::default();
-
-        // commands
-        //     .spawn_bundle(build!(circle))
-        //     .insert(Page::Fourier)
-        //     .insert(BoundCircle::new(amp))
-        //     .insert(BoundPoint::new(circle_x, shift_y));
-
-        // commands
-        //     .spawn_bundle(GeometryBuilder::build_as(
-        //         &circle,
-        //         DrawMode::Stroke(StrokeMode::new(Color::RED, 3.)),
-        //         Transform::default(),
-        //     ))
-        //     .insert(Page::Fourier)
-        //     .insert(BoundCircle::new(point_rad))
-        //     .insert(BoundPoint::new(circle_cos, circle_sin));
-
         let path_builder = PathBuilder::new();
         let line = path_builder.build();
 
         commands
             .spawn_bundle(build!(line))
             .insert(Page::Fourier)
+            .insert(group.clone())
             .insert(BoundTracker::new(circle_sin, 300));
-
-        // commands
-        //     .spawn_bundle(build!(line))
-        //     .insert(Page::Fourier)
-        //     .insert(BoundLine::new(circle_cos, circle_sin, zero, circle_sin));
+        inspector.entities.push(groupID);
     }
 }
 
-fn delete_row() {}
+fn delete_row(
+    mut events: EventReader<DeleteRowEvent>,
+    mut inspector: ResMut<Page4Inspector>,
+    deletion_candidates: Query<(Entity, &Group)>,
+    mut commands: Commands,
+) {
+    for DeleteRowEvent(ID) in events.iter() {
+        for (e, _g) in deletion_candidates.iter().filter(|(_e, g)| g.0 == *ID) {
+            commands.entity(e).despawn();
+        }
+        inspector.entities.retain(|&w| w != *ID)
+    }
+}
 
 fn update_sum(
     mut queries: ParamSet<(
