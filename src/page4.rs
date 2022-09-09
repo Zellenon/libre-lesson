@@ -2,7 +2,7 @@ use std::f64::consts::PI;
 
 use bevy::prelude::*;
 use bevy_egui::{egui, EguiContext};
-use bevy_prototype_lyon::{prelude::*, shapes::Circle};
+use bevy_prototype_lyon::prelude::*;
 use bevy_turborand::{DelegatedRng, GlobalRng};
 
 use crate::drawing::boundtracker::BoundTracker;
@@ -13,8 +13,6 @@ use crate::variables::{
     Variable,
 };
 use crate::{Page, Time, GLOBAL};
-
-const SUM: usize = 7;
 
 #[derive(Component)]
 struct Freq;
@@ -87,7 +85,7 @@ impl Default for Page4Inspector {
     }
 }
 fn update_page4_inspector(
-    mut inspector: ResMut<Page4Inspector>,
+    inspector: ResMut<Page4Inspector>,
     mut egui_context: ResMut<EguiContext>,
     page: Res<State<Page>>,
     mut creation_events: EventWriter<NewRowEvent>,
@@ -104,9 +102,9 @@ fn update_page4_inspector(
                         creation_events.send(NewRowEvent);
                     }
                 });
-                for ID in inspector.entities.iter() {
+                for id in inspector.entities.iter() {
                     if ui.button("Delete").clicked() {
-                        deletion_events.send(DeleteRowEvent(*ID));
+                        deletion_events.send(DeleteRowEvent(*id));
                     }
                 }
             });
@@ -125,9 +123,9 @@ fn new_row(
     mut rng: ResMut<GlobalRng>,
     mut inspector: ResMut<Page4Inspector>,
 ) {
-    let mut groupID = 8;
-    while groups.iter().any(|w| w.0 == groupID) {
-        groupID += 1;
+    let mut group_id = 8;
+    while groups.iter().any(|w| w.0 == group_id) {
+        group_id += 1;
     }
     for _event in events.iter() {
         let mut offset = 200.;
@@ -140,7 +138,7 @@ fn new_row(
         {
             offset -= 75.;
         }
-        let group = &Group(groupID);
+        let group = &Group(group_id);
         let phase = independent(&mut commands, group, "phase", rng.i16(1..=200) as f64 / 10.);
         let freq = independent(&mut commands, group, "freq", rng.i16(1..=90) as f64 / 3.);
         let amp = independent(&mut commands, group, "amp", rng.i16(5..=25) as f64);
@@ -185,7 +183,7 @@ fn new_row(
             .insert(Page::Fourier)
             .insert(group.clone())
             .insert(BoundTracker::new(circle_sin, 300));
-        inspector.entities.push(groupID);
+        inspector.entities.push(group_id);
     }
 }
 
@@ -195,11 +193,11 @@ fn delete_row(
     deletion_candidates: Query<(Entity, &Group)>,
     mut commands: Commands,
 ) {
-    for DeleteRowEvent(ID) in events.iter() {
-        for (e, _g) in deletion_candidates.iter().filter(|(_e, g)| g.0 == *ID) {
+    for DeleteRowEvent(id) in events.iter() {
+        for (e, _g) in deletion_candidates.iter().filter(|(_e, g)| g.0 == *id) {
             commands.entity(e).despawn();
         }
-        inspector.entities.retain(|&w| w != *ID)
+        inspector.entities.retain(|&w| w != *id)
     }
 }
 
