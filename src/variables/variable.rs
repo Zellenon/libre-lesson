@@ -82,7 +82,7 @@ impl Variable {
 
     pub fn equation_mut(&mut self) -> Option<&mut Arc<dyn Lam>> {
         match self {
-            Variable::Independent { value } => None,
+            Variable::Independent { value: _ } => None,
             Variable::Dependent {
                 value: _,
                 recalculated: _,

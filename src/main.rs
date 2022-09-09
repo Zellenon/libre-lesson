@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy::{asset::AssetServerSettings, prelude::Component};
 use bevy_egui::EguiPlugin;
-use bevy_prototype_lyon::{prelude::*, shapes::Circle};
+use bevy_prototype_lyon::prelude::*;
 use drawing::DrawingPlugin;
 use page1::Page1Plugin;
 use page2::Page2Plugin;
@@ -81,7 +81,10 @@ fn page_system(mut page: ResMut<State<Page>>, input: Res<Input<KeyCode>>) {
         current_index = (current_index + movement)
             .max(0)
             .min((pages.len() - 1) as isize);
-        page.set(*pages.get(current_index as usize).unwrap());
+        match page.set(*pages.get(current_index as usize).unwrap()) {
+            Ok(_) => (),
+            Err(_) => (),
+        };
     }
 }
 
