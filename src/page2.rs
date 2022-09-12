@@ -6,7 +6,7 @@ use bevy_prototype_lyon::{prelude::*, shapes::Circle};
 
 use crate::drawing::boundcircle::BoundCircle;
 use crate::drawing::boundline::BoundLine;
-use crate::drawing::boundpoint::BoundPoint;
+use crate::drawing::boundlocation::BoundLocation;
 use crate::drawing::boundtracker::BoundTracker;
 use crate::variables::lambda::*;
 use crate::variables::{
@@ -101,7 +101,7 @@ fn page2_setup(mut commands: Commands) {
             .spawn_bundle(build!(circle))
             .insert(Page::Combination)
             .insert(BoundCircle::new(amp))
-            .insert(BoundPoint::new(circle_x, shift_y));
+            .insert(BoundLocation::new(circle_x, shift_y));
 
         commands
             .spawn_bundle(GeometryBuilder::build_as(
@@ -111,7 +111,7 @@ fn page2_setup(mut commands: Commands) {
             ))
             .insert(Page::Combination)
             .insert(BoundCircle::new(point_rad))
-            .insert(BoundPoint::new(circle_cos, circle_sin));
+            .insert(BoundLocation::new(circle_cos, circle_sin));
 
         let path_builder = PathBuilder::new();
         let line = path_builder.build();
@@ -151,7 +151,7 @@ fn page2_setup(mut commands: Commands) {
         .spawn_bundle(build!(circle))
         .insert(Page::Combination)
         .insert(BoundCircle::new(lower_amp))
-        .insert(BoundPoint::new(sum_center, sum_center));
+        .insert(BoundLocation::new(sum_center, sum_center));
 
     let sum_cos = dependent(
         &mut commands,
@@ -169,7 +169,7 @@ fn page2_setup(mut commands: Commands) {
         .spawn_bundle(build!(circle))
         .insert(Page::Combination)
         .insert(BoundCircle::new(upper_amp))
-        .insert(BoundPoint::new(sum_cos, sum_sin));
+        .insert(BoundLocation::new(sum_cos, sum_sin));
 
     let sum_point_x = dependent(
         &mut commands,
@@ -191,7 +191,7 @@ fn page2_setup(mut commands: Commands) {
         ))
         .insert(Page::Combination)
         .insert(BoundCircle::new(point_rad))
-        .insert(BoundPoint::new(sum_point_x, sum_point_y));
+        .insert(BoundLocation::new(sum_point_x, sum_point_y));
     commands
         .spawn_bundle(build!(line))
         .insert(Page::Combination)

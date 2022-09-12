@@ -6,7 +6,7 @@ use bevy_prototype_lyon::{prelude::*, shapes::Circle};
 
 use crate::drawing::boundcircle::BoundCircle;
 use crate::drawing::boundline::BoundLine;
-use crate::drawing::boundpoint::BoundPoint;
+use crate::drawing::boundlocation::BoundLocation;
 use crate::drawing::boundtracker::BoundTracker;
 use crate::variables::lambda::*;
 use crate::variables::{
@@ -92,7 +92,7 @@ fn page1_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         .spawn_bundle(build!(circle))
         .insert(Page::Simple)
         .insert(BoundCircle::new(amp))
-        .insert(BoundPoint::new(circle_x, zero));
+        .insert(BoundLocation::new(circle_x, zero));
 
     commands
         .spawn_bundle(GeometryBuilder::build_as(
@@ -102,7 +102,7 @@ fn page1_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ))
         .insert(Page::Simple)
         .insert(BoundCircle::new(point_rad))
-        .insert(BoundPoint::new(circle_cos, sin_theta));
+        .insert(BoundLocation::new(circle_cos, sin_theta));
 
     let path_builder = PathBuilder::new();
     let line = path_builder.build();

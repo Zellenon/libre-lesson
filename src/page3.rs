@@ -7,7 +7,7 @@ use bevy_turborand::{DelegatedRng, GlobalRng, RngPlugin};
 
 use crate::drawing::boundcircle::BoundCircle;
 use crate::drawing::boundline::BoundLine;
-use crate::drawing::boundpoint::BoundPoint;
+use crate::drawing::boundlocation::BoundLocation;
 use crate::drawing::boundtracker::BoundTracker;
 use crate::variables::lambda::*;
 use crate::variables::{
@@ -100,7 +100,7 @@ fn page3_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         .spawn_bundle(build!(circle))
         .insert(Page::Game)
         .insert(BoundCircle::new(amp))
-        .insert(BoundPoint::new(circle_x, zero));
+        .insert(BoundLocation::new(circle_x, zero));
 
     commands
         .spawn_bundle(GeometryBuilder::build_as(
@@ -110,7 +110,7 @@ fn page3_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ))
         .insert(Page::Game)
         .insert(BoundCircle::new(point_rad))
-        .insert(BoundPoint::new(circle_cos, sin_theta));
+        .insert(BoundLocation::new(circle_cos, sin_theta));
 
     let path_builder = PathBuilder::new();
     let line = path_builder.build();
@@ -213,7 +213,7 @@ fn page3_invisible_setup(mut commands: Commands) {
         .spawn_bundle(build!(circle))
         .insert(Page::Game)
         .insert(BoundCircle::new(amp))
-        .insert(BoundPoint::new(circle_x, shift_y));
+        .insert(BoundLocation::new(circle_x, shift_y));
 
     commands
         .spawn_bundle(GeometryBuilder::build_as(
@@ -223,7 +223,7 @@ fn page3_invisible_setup(mut commands: Commands) {
         ))
         .insert(Page::Game)
         .insert(BoundCircle::new(point_rad))
-        .insert(BoundPoint::new(circle_cos, sin_theta));
+        .insert(BoundLocation::new(circle_cos, sin_theta));
 
     let path_builder = PathBuilder::new();
     let line = path_builder.build();

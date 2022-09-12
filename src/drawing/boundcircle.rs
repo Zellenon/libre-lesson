@@ -1,11 +1,14 @@
+//! All structures and systems to draw circles with their size bound to variables.
+
 use bevy::prelude::*;
 use bevy_prototype_lyon::prelude::{Path, ShapePath};
 use bevy_prototype_lyon::shapes::Circle;
 
 use crate::variables::binding::Bound;
 
-use super::boundpoint::BoundPoint;
+use super::boundlocation::BoundLocation;
 
+/// The component which stores information on variable bindings.
 #[derive(Component, Clone)]
 pub struct BoundCircle {
     radius: Entity,
@@ -21,8 +24,9 @@ impl BoundCircle {
     }
 }
 
+/// Set the size of all circles to the value of the variable they're bound to.
 pub(crate) fn update_bound_circles(
-    mut circle_query: Query<(&mut Path, &mut Transform, &BoundCircle, &BoundPoint)>,
+    mut circle_query: Query<(&mut Path, &mut Transform, &BoundCircle, &BoundLocation)>,
 ) {
     for (mut path, mut transform, circle, point) in circle_query.iter_mut() {
         let circle = Circle {
@@ -36,6 +40,7 @@ pub(crate) fn update_bound_circles(
 }
 
 impl Bound for BoundCircle {
+    /// Return the ID of the variable used for radius.
     fn get_bindings(&self) -> Vec<Entity> {
         vec![self.radius]
     }

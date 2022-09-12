@@ -3,14 +3,14 @@ use bevy::prelude::*;
 use crate::variables::binding::Bound;
 
 #[derive(Component, Clone)]
-pub struct BoundPoint {
+pub struct BoundLocation {
     x_value: f32,
     x: Entity,
     y_value: f32,
     y: Entity,
 }
 
-impl BoundPoint {
+impl BoundLocation {
     pub fn new(x: Entity, y: Entity) -> Self {
         Self {
             x,
@@ -25,7 +25,7 @@ impl BoundPoint {
     }
 }
 
-impl Bound for BoundPoint {
+impl Bound for BoundLocation {
     fn get_bindings(&self) -> Vec<Entity> {
         vec![self.x, self.y]
     }

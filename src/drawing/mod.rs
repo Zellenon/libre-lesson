@@ -7,7 +7,7 @@ use crate::variables::binding::update_bindings;
 
 use self::boundcircle::{update_bound_circles, BoundCircle};
 use self::boundline::{update_bound_lines, BoundLine};
-use self::boundpoint::BoundPoint;
+use self::boundlocation::BoundLocation;
 use self::boundtracker::{update_bound_trackers, BoundTracker};
 
 /// Circles that bind their radius and location to variable values
@@ -15,7 +15,7 @@ pub mod boundcircle;
 /// Lines that bind the coordinates of both their ends to variables
 pub mod boundline;
 /// A point that binds its co-ordinates to variable values
-pub mod boundpoint;
+pub mod boundlocation;
 /// A line that tracks the last N values of a variable
 pub mod boundtracker;
 
@@ -40,7 +40,7 @@ impl Plugin for DrawingPlugin {
                 .after("variable_recalculation")
                 .with_system(update_bindings::<BoundLine>.label("bind_lines"))
                 .with_system(update_bound_lines.after("bind_lines"))
-                .with_system(update_bindings::<BoundPoint>.label("bind_points"))
+                .with_system(update_bindings::<BoundLocation>.label("bind_points"))
                 .with_system(update_bindings::<BoundCircle>.label("bind_circles"))
                 .with_system(
                     update_bound_circles
