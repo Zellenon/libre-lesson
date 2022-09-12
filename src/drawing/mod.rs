@@ -1,3 +1,6 @@
+//! This crate contains structures and systems for easily drawing lines and shapes on-screen
+//! with prototype_lyon and automatically updating them based on values from the Variable crate.
+
 use bevy::prelude::*;
 
 use crate::variables::binding::update_bindings;
@@ -7,11 +10,16 @@ use self::boundline::{update_bound_lines, BoundLine};
 use self::boundpoint::BoundPoint;
 use self::boundtracker::{update_bound_trackers, BoundTracker};
 
+/// Circles that bind their radius and location to variable values
 pub mod boundcircle;
+/// Lines that bind the coordinates of both their ends to variables
 pub mod boundline;
+/// A point that binds its co-ordinates to variable values
 pub mod boundpoint;
+/// A line that tracks the last N values of a variable
 pub mod boundtracker;
 
+/// Adds a standard camera, binding update functions for the built-in bound components, and the systems for the pages.
 pub struct DrawingPlugin {
     pub num_pages: usize,
 }
